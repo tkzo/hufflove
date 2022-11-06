@@ -1,0 +1,48 @@
+/// @title Staking
+/// @notice SPDX-License-Identifier: MIT
+/// @author takez0_o <https://github.com/takez0o>
+/// @author 
+/// @notice Modern and gas efficient implementation of StakingRewards algorithm
+/// @notice Adapted from Synthetix (https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol)
+/// @notice Inspired by HuffMate (https://github.com/pentagonxyz/huffmate)
+
+// Imports
+#include "../utils/Errors.huff"
+#include "../auth/NonPayable.huff"
+#include "../data-structures/Hashmap.huff"
+
+// Events
+#define event RewardAdded(uint256)
+#define event Staked(address indexed, uint256)
+#define event Withdrawn(address indexed, uint256)
+#define event RewardPaid(address indexed, uint256)
+#define event RewardsDurationUpdated(uint256)
+#define event Recovered(address, uint256)
+
+// Interface
+#define function totalSupply() view returns(uint256)
+#define function balanceOf(address) view returns (uint256)
+#define function lastTimeRewardApplicable() view returns (uint256)
+#define function rewardPerToken() view returns (uint256)
+#define function earned(address) view returns (uint256)
+#define function getRewardForDuration() view returns (uint256)
+#define function stake(uint256) nonpayable returns () 
+#define function withdraw(uint256) nonpayable returns () 
+#define function getReward() nonpayable returns ()
+#define function exit() nonpayable returns () 
+#define function notifyRewardAmount(uint256) nonpayable returns ()
+#define function recoverERC20(address,uint256) nonpayable returns ()
+#define function setRewardsDuration(uint256) nonpayable returns ()
+
+// Storage
+#define constant REWARDS_TOKEN_SLOT = FREE_STORAGE_POINTER()
+#define constant STAKING_TOKEN_SLOT = FREE_STORAGE_POINTER()
+#define constant PERIOD_FINISH_SLOT = FREE_STORAGE_POINTER()
+#define constant REWARD_RATE_SLOT = FREE_STORAGE_POINTER()
+#define constant REWARDS_DURATION_SLOT = FREE_STORAGE_POINTER()
+#define constant LAST_UPDATE_TIME_SLOT = FREE_STORAGE_POINTER()
+#define constant REWARD_PER_TOKEN_STORED_SLOT = FREE_STORAGE_POINTER()
+#define constant USER_REWARD_PER_TOKEN_PAID_SLOT = FREE_STORAGE_POINTER()
+#define constant REWARDS_SLOT = FREE_STORAGE_POINTER()
+#define constant TOTAL_SUPPLY_SLOT = FREE_STORAGE_POINTER()
+#define constant BALANCES_SLOT = FREE_STORAGE_POINTER()
