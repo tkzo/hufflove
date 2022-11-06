@@ -46,3 +46,65 @@
 #define constant REWARDS_SLOT = FREE_STORAGE_POINTER()
 #define constant TOTAL_SUPPLY_SLOT = FREE_STORAGE_POINTER()
 #define constant BALANCES_SLOT = FREE_STORAGE_POINTER()
+
+// Utility Constants
+#define constant UINT_256_MAX = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+#define constant ERROR_SIG = 0x08c379a000000000000000000000000000000000000000000000000000000000
+#define constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000
+
+/// @notice Constructor
+/// @notice Sets the initial addresses
+#define macro STAKING_CONSTRUCTOR() = takes (0) returns (0) {
+}
+
+// Function Dispatching
+#define macro STAKING_MAIN() = takes (1) returns (1) {
+    // Identify which function is being called.
+    // [func sig]
+
+    dup1 __FUNC_SIG(totalSupply)                eq totalSupplyJump                  jumpi
+    dup1 __FUNC_SIG(balanceOf)                  eq balanceOfJump                    jumpi
+    dup1 __FUNC_SIG(lastTimeRewardApplicable)   eq lastTimeRewardApplicableJump     jumpi
+    dup1 __FUNC_SIG(rewardPerToken)             eq rewardPerTokenJump               jumpi
+    dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi
+    dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
+    dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
+    dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
+    dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
+    dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
+    dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
+    dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
+    dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
+
+    // Bubble up to the parent macro
+    no_match jumpi
+
+    totalSupplyJump:
+        TOTAL_SUPPLY()
+    balanceOfJump:
+        BALANCE_OF()
+    lastTimeRewardApplicableJump:
+        LAST_TIME_REWARD_APPLICABLE()
+    rewardPerTokenJump:
+        REWARD_PER_TOKEN()
+    earnedJump:
+        EARNED()
+    getRewardForDurationJump:
+        GET_REWARD_FOR_DURATION()
+    stakeJump:
+        STAKE()
+    withdrawJump:
+        WITHDRAW()
+    getRewardJump:
+        GET_REWARD()
+    exitJump:
+        EXIT()
+    notifyRewardAmountJump:
+        NOTIFY_REWARD_AMOUNT()
+    recoverERC20Jump:
+        RECOVER_ERC20()
+    setRewardsDurationJump:
+        SET_REWARDS_DURATION()
+
+    no_match:
+}
