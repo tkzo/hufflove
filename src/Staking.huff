@@ -57,6 +57,27 @@
 #define macro STAKING_CONSTRUCTOR() = takes (0) returns (0) {
 }
 
+/// >>>>>>>>>>>>>>>>>>>>>  VIEW FUNCTIONS  <<<<<<<<<<<<<<<<<<<<<< ///
+
+/// @notice Total Supply
+/// @notice Returns the total token supply of the contract
+#define macro TOTAL_SUPPLY() = takes (0) returns (0) {
+    NON_PAYABLE()                       // []
+    [TOTAL_SUPPLY_SLOT] sload           // [supply]
+    0x00 mstore                         // []
+    0x20 0x00 return                    // []
+}
+
+/// @notice Balance Of
+/// @notice Returns the balance of the given address
+#define macro BALANCE_OF() = takes (0) returns (0) {
+    NON_PAYABLE()                                       // []
+    0x04 calldataload                                   // [account]
+    [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)     // [balance]
+    0x00 mstore                                         // []
+    0x20 0x00 return                                    // []
+}
+
 // Function Dispatching
 #define macro STAKING_MAIN() = takes (1) returns (1) {
     // Identify which function is being called.
