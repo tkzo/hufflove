@@ -7,9 +7,14 @@
 /// @notice Inspired by HuffMate (https://github.com/pentagonxyz/huffmate)
 
 // Imports
-#include "../utils/Errors.huff"
-#include "../auth/NonPayable.huff"
-#include "../data-structures/Hashmap.huff"
+#include "lib/huffmate/src/utils/Errors.huff"
+#include "lib/huffmate/src/auth/NonPayable.huff"
+#include "lib/huffmate/src/data-structures/Hashmap.huff"
+#include "lib/huffmate/src/math/SafeMath.huff"
+#include "lib/huffmate/src/math/SafeMath.huff"
+#include "lib/huffmate/src/utils/ReentrancyGuard.huff"
+#include "lib/huffmate/src/auth/Owned.huff"
+#include "lib/huffmate/src/token/ERC20.huff"
 
 // Events
 #define event RewardAdded(uint256)
@@ -55,6 +60,7 @@
 /// @notice Constructor
 /// @notice Sets the initial addresses
 #define macro STAKING_CONSTRUCTOR() = takes (0) returns (0) {
+
 }
 
 /// >>>>>>>>>>>>>>>>>>>>>  VIEW FUNCTIONS  <<<<<<<<<<<<<<<<<<<<<< ///
@@ -78,10 +84,38 @@
     0x20 0x00 return                                    // []
 }
 
+#define macro STAKE() = takes (0) returns (0) {}
+#define macro WITHDRAW() = takes (0) returns (0) {}
+#define macro GET_REWARD() = takes (0) returns (0) {}
+
+/// @notice Recover ERC-20
+/// @notice Non-Payable function that transfers the given token in given amount to the owner.
+#define macro RECOVER_ERC20() = takes (0) returns (0) {
+    NON_PAYABLE()
+    IS_OWNER()
+    
+    // Setup the stack for the transfer function.
+    0x04 calldataload           // [address]
+    caller                      // [to, address]
+    0x24 calldataload           // [amount, to, address]
+    // ...
+    call
+
+    // Emit the recovered event.
+    0x00 mstore                 // [from, to]
+    __EVENT_HASH(Recovered)      // [sig, from, to]
+    0x20 0x00                   // [0, 32, sig, from, to]
+    log3                        // []
+
+    // Return "1" to represent a succesful transfer.
+    0x01 0x00 mstore            // []
+    0x20 0x00 return            // []
+}
+
 // Function Dispatching
-#define macro STAKING_MAIN() = takes (1) returns (1) {
-    // Identify which function is being called.
-    // [func sig]
+#define macro STAKING_MAIN() = takes (0) returns (0) {
+
+    0x00 calldataload 0xE0 shr
 
     dup1 __FUNC_SIG(totalSupply)                eq totalSupplyJump                  jumpi
     dup1 __FUNC_SIG(balanceOf)                  eq balanceOfJump                    jumpi
@@ -97,8 +131,8 @@
     dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
     dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
 
-    // Bubble up to the parent macro
-    no_match jumpi
+    // Revert if no functions match
+    0x00 0x00 revert
 
     totalSupplyJump:
         TOTAL_SUPPLY()
@@ -113,11 +147,17 @@
     getRewardForDurationJump:
         GET_REWARD_FOR_DURATION()
     stakeJump:
+        LOCK()
         STAKE()
+        finalize jump
     withdrawJump:
+        LOCK()
         WITHDRAW()
+        finalize jump
     getRewardJump:
+        LOCK()
         GET_REWARD()
+        finalize jump
     exitJump:
         EXIT()
     notifyRewardAmountJump:
@@ -126,6 +166,8 @@
         RECOVER_ERC20()
     setRewardsDurationJump:
         SET_REWARDS_DURATION()
-
-    no_match:
+    
+    finalize:
+        UNLOCK()
+        stop
 }
