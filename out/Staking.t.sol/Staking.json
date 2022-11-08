@@ -1,0 +1,945 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "methodIdentifiers": {
+    "balanceOf(address)": "70a08231"
+  },
+  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.17+commit.8df45f5f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"test/Staking.t.sol\":\"Staking\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":ds-test/=lib/huffmate/lib/forge-std/lib/ds-test/src/\",\":forge-std/=lib/huffmate/lib/forge-std/src/\",\":foundry-huff/=lib/foundry-huff/src/\",\":huffmate/=lib/huffmate/src/\",\":solmate/=lib/huffmate/lib/solmate/src/\",\":stringutils/=lib/foundry-huff/lib/solidity-stringutils/\"]},\"sources\":{\"lib/foundry-huff/lib/solidity-stringutils/strings.sol\":{\"keccak256\":\"0x9e064fd116cdd5ed4b0132d0606a372bd94ff243c0520bc723fb6b09e947c16e\",\"urls\":[\"bzz-raw://93d1a36262aa498a85ac7a275ead2cf410b9c674d6bef09d0972203cb33b724e\",\"dweb:/ipfs/QmY9T4HKDbPXEZPHzXaFbd2M86fV1Q68sBJYh8J9LDFApU\"]},\"lib/foundry-huff/src/HuffConfig.sol\":{\"keccak256\":\"0x4a6d498faece6525a06922cecc01c7354ac6f69f4c94afa5f8ebe9ee2c2fd3df\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://9c578631755aa86e8e27a42fa6b5f0a97311f7efb2c3185b4988521df1218e32\",\"dweb:/ipfs/QmatEdmh66GK7W41dMN9YXoGiZ1CzToxdbJSPX7FUdVmpB\"]},\"lib/foundry-huff/src/HuffDeployer.sol\":{\"keccak256\":\"0x21e5f49166a6975cab1357f95ccafac5cd5d13cc479d34ce3bdb78ed1fa71bfc\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://109680c9544e4c767a6bc984c9bf26bfe59d240c6457f402e27c655d548ec350\",\"dweb:/ipfs/QmQGyVg2fcBmGYUCowK11DkHM5qQhYyoDCbcRRNiuSWzDf\"]},\"lib/huffmate/lib/forge-std/lib/ds-test/src/test.sol\":{\"keccak256\":\"0xb39cd1d5220cb474947b131e15a4538334b7e886af244b440ae5c9c6bba96a54\",\"license\":\"GPL-3.0-or-later\",\"urls\":[\"bzz-raw://3101520221449ac0070bda3881311a71d9aa87e5210765e875246922cb5cb5f5\",\"dweb:/ipfs/Qmbg6kAHNoG7ox9N9Xqd9Ere2H2XixMFWFqvyPwFCzB3Gr\"]},\"lib/huffmate/lib/forge-std/src/Script.sol\":{\"keccak256\":\"0x9d09c1e55cd508d3376cff9961625d51d73f8ce075ec1e9deed41408a4556e00\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://8880c5551daf337ab91665a9ce593df67a9eb11b0bee820f631d324d2fdd3a8b\",\"dweb:/ipfs/QmNpvSBGnS9Jr6Swd6XKsijG59a4yjYemWCFwprjKFkpNC\"]},\"lib/huffmate/lib/forge-std/src/StdJson.sol\":{\"keccak256\":\"0x1297a1cc393bc8163ccf143e5335536e78cb25ac24a4f6dfdb25f5746dd4827e\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://945ccffad9fc09d2aa0ac200a80dcfa2f491dba8680fc9c3d3d450d891284b87\",\"dweb:/ipfs/QmYSfFb1L6LN1ZB9KWzZqxt2iAbpuFDskBcU1Bz4RiyuQ5\"]},\"lib/huffmate/lib/forge-std/src/Test.sol\":{\"keccak256\":\"0x6c9cbd51234372b66bf7c146870edf0855770c46e960a8fae8f354ddf382876b\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://fd0ff1f449294dd1447b9d483c52d78e137d8cac518646e76df9fdd4d185d6c2\",\"dweb:/ipfs/QmS3JP4vKgvAWo8Tc7zVrGxbdR7t37ayk1mTHN3seD6UAZ\"]},\"lib/huffmate/lib/forge-std/src/Vm.sol\":{\"keccak256\":\"0x9ef2fa79d3a8dc9aa56f4ff3d496aa1de5a03b2912af074df94f771283145e94\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://b919cb336dac6418e64911295dc9d4137d566fb1d21fdda5b09d2046aeea36cf\",\"dweb:/ipfs/QmVnLfEqjmkqCbVzpgvZKcpL7M1JXVx5a8iT1M8EQzGyxj\"]},\"lib/huffmate/lib/forge-std/src/console.sol\":{\"keccak256\":\"0x91d5413c2434ca58fd278b6e1e79fd98d10c83931cc2596a6038eee4daeb34ba\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://91ccea707361e48b9b7a161fe81f496b9932bc471e9c4e4e1e9c283f2453cc70\",\"dweb:/ipfs/QmcB66sZhQ6Kz7MUHcLE78YXRUZxoZnnxZjN6yATsbB2ec\"]},\"lib/huffmate/lib/forge-std/src/console2.sol\":{\"keccak256\":\"0xbeb823fcdb356244a83aaccdf828ad019ecc1ffaa3dff18e624fc6d5714ea671\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://4cbe9400340e5f9ec55e2aff3bad1c15fa3afbbe37e80800e6f3fed2ad26854f\",\"dweb:/ipfs/QmdJBABsuXkvWxVzEyGXsTE3vyfBPXDdw5xvvtUz3JeoYW\"]},\"test/Staking.t.sol\":{\"keccak256\":\"0xfc58b26b07b6ba829df5cbb21501185ffdf6a7a038a1a6e7693bd43c11db07a3\",\"license\":\"Unlicense\",\"urls\":[\"bzz-raw://8a1e57035808074c84d28fd975a7e94fa9ac15733f2ca624f945be74edeb2b09\",\"dweb:/ipfs/QmZSEmKHjYDjdcv683LXbsedVfFXPoByrTwhMTXicYiToA\"]}},\"version\":1}",
+  "metadata": {
+    "compiler": {
+      "version": "0.8.17+commit.8df45f5f"
+    },
+    "language": "Solidity",
+    "output": {
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "balanceOf",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ]
+        }
+      ],
+      "devdoc": {
+        "kind": "dev",
+        "methods": {},
+        "version": 1
+      },
+      "userdoc": {
+        "kind": "user",
+        "methods": {},
+        "version": 1
+      }
+    },
+    "settings": {
+      "remappings": [
+        ":ds-test/=lib/huffmate/lib/forge-std/lib/ds-test/src/",
+        ":forge-std/=lib/huffmate/lib/forge-std/src/",
+        ":foundry-huff/=lib/foundry-huff/src/",
+        ":huffmate/=lib/huffmate/src/",
+        ":solmate/=lib/huffmate/lib/solmate/src/",
+        ":stringutils/=lib/foundry-huff/lib/solidity-stringutils/"
+      ],
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "metadata": {
+        "bytecodeHash": "ipfs"
+      },
+      "compilationTarget": {
+        "test/Staking.t.sol": "Staking"
+      },
+      "libraries": {}
+    },
+    "sources": {
+      "lib/foundry-huff/lib/solidity-stringutils/strings.sol": {
+        "keccak256": "0x9e064fd116cdd5ed4b0132d0606a372bd94ff243c0520bc723fb6b09e947c16e",
+        "urls": [
+          "bzz-raw://93d1a36262aa498a85ac7a275ead2cf410b9c674d6bef09d0972203cb33b724e",
+          "dweb:/ipfs/QmY9T4HKDbPXEZPHzXaFbd2M86fV1Q68sBJYh8J9LDFApU"
+        ],
+        "license": null
+      },
+      "lib/foundry-huff/src/HuffConfig.sol": {
+        "keccak256": "0x4a6d498faece6525a06922cecc01c7354ac6f69f4c94afa5f8ebe9ee2c2fd3df",
+        "urls": [
+          "bzz-raw://9c578631755aa86e8e27a42fa6b5f0a97311f7efb2c3185b4988521df1218e32",
+          "dweb:/ipfs/QmatEdmh66GK7W41dMN9YXoGiZ1CzToxdbJSPX7FUdVmpB"
+        ],
+        "license": "Apache-2.0"
+      },
+      "lib/foundry-huff/src/HuffDeployer.sol": {
+        "keccak256": "0x21e5f49166a6975cab1357f95ccafac5cd5d13cc479d34ce3bdb78ed1fa71bfc",
+        "urls": [
+          "bzz-raw://109680c9544e4c767a6bc984c9bf26bfe59d240c6457f402e27c655d548ec350",
+          "dweb:/ipfs/QmQGyVg2fcBmGYUCowK11DkHM5qQhYyoDCbcRRNiuSWzDf"
+        ],
+        "license": "Apache-2.0"
+      },
+      "lib/huffmate/lib/forge-std/lib/ds-test/src/test.sol": {
+        "keccak256": "0xb39cd1d5220cb474947b131e15a4538334b7e886af244b440ae5c9c6bba96a54",
+        "urls": [
+          "bzz-raw://3101520221449ac0070bda3881311a71d9aa87e5210765e875246922cb5cb5f5",
+          "dweb:/ipfs/Qmbg6kAHNoG7ox9N9Xqd9Ere2H2XixMFWFqvyPwFCzB3Gr"
+        ],
+        "license": "GPL-3.0-or-later"
+      },
+      "lib/huffmate/lib/forge-std/src/Script.sol": {
+        "keccak256": "0x9d09c1e55cd508d3376cff9961625d51d73f8ce075ec1e9deed41408a4556e00",
+        "urls": [
+          "bzz-raw://8880c5551daf337ab91665a9ce593df67a9eb11b0bee820f631d324d2fdd3a8b",
+          "dweb:/ipfs/QmNpvSBGnS9Jr6Swd6XKsijG59a4yjYemWCFwprjKFkpNC"
+        ],
+        "license": "MIT"
+      },
+      "lib/huffmate/lib/forge-std/src/StdJson.sol": {
+        "keccak256": "0x1297a1cc393bc8163ccf143e5335536e78cb25ac24a4f6dfdb25f5746dd4827e",
+        "urls": [
+          "bzz-raw://945ccffad9fc09d2aa0ac200a80dcfa2f491dba8680fc9c3d3d450d891284b87",
+          "dweb:/ipfs/QmYSfFb1L6LN1ZB9KWzZqxt2iAbpuFDskBcU1Bz4RiyuQ5"
+        ],
+        "license": "MIT"
+      },
+      "lib/huffmate/lib/forge-std/src/Test.sol": {
+        "keccak256": "0x6c9cbd51234372b66bf7c146870edf0855770c46e960a8fae8f354ddf382876b",
+        "urls": [
+          "bzz-raw://fd0ff1f449294dd1447b9d483c52d78e137d8cac518646e76df9fdd4d185d6c2",
+          "dweb:/ipfs/QmS3JP4vKgvAWo8Tc7zVrGxbdR7t37ayk1mTHN3seD6UAZ"
+        ],
+        "license": "MIT"
+      },
+      "lib/huffmate/lib/forge-std/src/Vm.sol": {
+        "keccak256": "0x9ef2fa79d3a8dc9aa56f4ff3d496aa1de5a03b2912af074df94f771283145e94",
+        "urls": [
+          "bzz-raw://b919cb336dac6418e64911295dc9d4137d566fb1d21fdda5b09d2046aeea36cf",
+          "dweb:/ipfs/QmVnLfEqjmkqCbVzpgvZKcpL7M1JXVx5a8iT1M8EQzGyxj"
+        ],
+        "license": "MIT"
+      },
+      "lib/huffmate/lib/forge-std/src/console.sol": {
+        "keccak256": "0x91d5413c2434ca58fd278b6e1e79fd98d10c83931cc2596a6038eee4daeb34ba",
+        "urls": [
+          "bzz-raw://91ccea707361e48b9b7a161fe81f496b9932bc471e9c4e4e1e9c283f2453cc70",
+          "dweb:/ipfs/QmcB66sZhQ6Kz7MUHcLE78YXRUZxoZnnxZjN6yATsbB2ec"
+        ],
+        "license": "MIT"
+      },
+      "lib/huffmate/lib/forge-std/src/console2.sol": {
+        "keccak256": "0xbeb823fcdb356244a83aaccdf828ad019ecc1ffaa3dff18e624fc6d5714ea671",
+        "urls": [
+          "bzz-raw://4cbe9400340e5f9ec55e2aff3bad1c15fa3afbbe37e80800e6f3fed2ad26854f",
+          "dweb:/ipfs/QmdJBABsuXkvWxVzEyGXsTE3vyfBPXDdw5xvvtUz3JeoYW"
+        ],
+        "license": "MIT"
+      },
+      "test/Staking.t.sol": {
+        "keccak256": "0xfc58b26b07b6ba829df5cbb21501185ffdf6a7a038a1a6e7693bd43c11db07a3",
+        "urls": [
+          "bzz-raw://8a1e57035808074c84d28fd975a7e94fa9ac15733f2ca624f945be74edeb2b09",
+          "dweb:/ipfs/QmZSEmKHjYDjdcv683LXbsedVfFXPoByrTwhMTXicYiToA"
+        ],
+        "license": "Unlicense"
+      }
+    },
+    "version": 1
+  },
+  "ast": {
+    "absolutePath": "test/Staking.t.sol",
+    "id": 26198,
+    "exportedSymbols": {
+      "DSTest": [
+        4715
+      ],
+      "HuffConfig": [
+        2693
+      ],
+      "HuffDeployer": [
+        2928
+      ],
+      "Script": [
+        4978
+      ],
+      "Staking": [
+        26154
+      ],
+      "StakingTest": [
+        26197
+      ],
+      "StdStorage": [
+        8006
+      ],
+      "Test": [
+        7908
+      ],
+      "Vm": [
+        10013
+      ],
+      "console": [
+        18077
+      ],
+      "console2": [
+        26141
+      ],
+      "stdError": [
+        7978
+      ],
+      "stdJson": [
+        5338
+      ],
+      "stdMath": [
+        9247
+      ],
+      "stdStorage": [
+        9108
+      ]
+    },
+    "nodeType": "SourceUnit",
+    "src": "38:661:10",
+    "nodes": [
+      {
+        "id": 26143,
+        "nodeType": "PragmaDirective",
+        "src": "38:24:10",
+        "nodes": [],
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".15"
+        ]
+      },
+      {
+        "id": 26144,
+        "nodeType": "ImportDirective",
+        "src": "64:39:10",
+        "nodes": [],
+        "absolutePath": "lib/foundry-huff/src/HuffDeployer.sol",
+        "file": "foundry-huff/HuffDeployer.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 26198,
+        "sourceUnit": 2929,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 26145,
+        "nodeType": "ImportDirective",
+        "src": "104:28:10",
+        "nodes": [],
+        "absolutePath": "lib/huffmate/lib/forge-std/src/Test.sol",
+        "file": "forge-std/Test.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 26198,
+        "sourceUnit": 9248,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 26146,
+        "nodeType": "ImportDirective",
+        "src": "133:31:10",
+        "nodes": [],
+        "absolutePath": "lib/huffmate/lib/forge-std/src/console.sol",
+        "file": "forge-std/console.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 26198,
+        "sourceUnit": 18078,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 26154,
+        "nodeType": "ContractDefinition",
+        "src": "166:81:10",
+        "nodes": [
+          {
+            "id": 26153,
+            "nodeType": "FunctionDefinition",
+            "src": "190:55:10",
+            "nodes": [],
+            "functionSelector": "70a08231",
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "balanceOf",
+            "nameLocation": "199:9:10",
+            "parameters": {
+              "id": 26149,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 26148,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 26153,
+                  "src": "209:7:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 26147,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "209:7:10",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "208:9:10"
+            },
+            "returnParameters": {
+              "id": 26152,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 26151,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 26153,
+                  "src": "236:7:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 26150,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "236:7:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "235:9:10"
+            },
+            "scope": 26154,
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          }
+        ],
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "Staking",
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "fullyImplemented": false,
+        "linearizedBaseContracts": [
+          26154
+        ],
+        "name": "Staking",
+        "nameLocation": "176:7:10",
+        "scope": 26198,
+        "usedErrors": []
+      },
+      {
+        "id": 26197,
+        "nodeType": "ContractDefinition",
+        "src": "249:449:10",
+        "nodes": [
+          {
+            "id": 26160,
+            "nodeType": "VariableDeclaration",
+            "src": "330:22:10",
+            "nodes": [],
+            "constant": false,
+            "documentation": {
+              "id": 26157,
+              "nodeType": "StructuredDocumentation",
+              "src": "284:41:10",
+              "text": "@dev Address of the Staking contract."
+            },
+            "functionSelector": "4cf088d9",
+            "mutability": "mutable",
+            "name": "staking",
+            "nameLocation": "345:7:10",
+            "scope": 26197,
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_contract$_Staking_$26154",
+              "typeString": "contract Staking"
+            },
+            "typeName": {
+              "id": 26159,
+              "nodeType": "UserDefinedTypeName",
+              "pathNode": {
+                "id": 26158,
+                "name": "Staking",
+                "nameLocations": [
+                  "330:7:10"
+                ],
+                "nodeType": "IdentifierPath",
+                "referencedDeclaration": 26154,
+                "src": "330:7:10"
+              },
+              "referencedDeclaration": 26154,
+              "src": "330:7:10",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Staking_$26154",
+                "typeString": "contract Staking"
+              }
+            },
+            "visibility": "public"
+          },
+          {
+            "id": 26174,
+            "nodeType": "FunctionDefinition",
+            "src": "403:90:10",
+            "nodes": [],
+            "body": {
+              "id": 26173,
+              "nodeType": "Block",
+              "src": "427:66:10",
+              "nodes": [],
+              "statements": [
+                {
+                  "expression": {
+                    "id": 26171,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "id": 26164,
+                      "name": "staking",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 26160,
+                      "src": "437:7:10",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_Staking_$26154",
+                        "typeString": "contract Staking"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "arguments": [
+                        {
+                          "arguments": [
+                            {
+                              "hexValue": "5374616b696e67",
+                              "id": 26168,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "string",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "475:9:10",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_stringliteral_1df41cd916959d1163dc8f0671a666ea8a3e434c13e40faef527133b5d167034",
+                                "typeString": "literal_string \"Staking\""
+                              },
+                              "value": "Staking"
+                            }
+                          ],
+                          "expression": {
+                            "argumentTypes": [
+                              {
+                                "typeIdentifier": "t_stringliteral_1df41cd916959d1163dc8f0671a666ea8a3e434c13e40faef527133b5d167034",
+                                "typeString": "literal_string \"Staking\""
+                              }
+                            ],
+                            "expression": {
+                              "id": 26166,
+                              "name": "HuffDeployer",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 2928,
+                              "src": "455:12:10",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_type$_t_contract$_HuffDeployer_$2928_$",
+                                "typeString": "type(library HuffDeployer)"
+                              }
+                            },
+                            "id": 26167,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "memberLocation": "468:6:10",
+                            "memberName": "deploy",
+                            "nodeType": "MemberAccess",
+                            "referencedDeclaration": 2727,
+                            "src": "455:19:10",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_function_internal_nonpayable$_t_string_memory_ptr_$returns$_t_address_$",
+                              "typeString": "function (string memory) returns (address)"
+                            }
+                          },
+                          "id": 26169,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "kind": "functionCall",
+                          "lValueRequested": false,
+                          "nameLocations": [],
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "455:30:10",
+                          "tryCall": false,
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": [
+                          {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        ],
+                        "id": 26165,
+                        "name": "Staking",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 26154,
+                        "src": "447:7:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_contract$_Staking_$26154_$",
+                          "typeString": "type(contract Staking)"
+                        }
+                      },
+                      "id": 26170,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "kind": "typeConversion",
+                      "lValueRequested": false,
+                      "nameLocations": [],
+                      "names": [],
+                      "nodeType": "FunctionCall",
+                      "src": "447:39:10",
+                      "tryCall": false,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_Staking_$26154",
+                        "typeString": "contract Staking"
+                      }
+                    },
+                    "src": "437:49:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_Staking_$26154",
+                      "typeString": "contract Staking"
+                    }
+                  },
+                  "id": 26172,
+                  "nodeType": "ExpressionStatement",
+                  "src": "437:49:10"
+                }
+              ]
+            },
+            "documentation": {
+              "id": 26161,
+              "nodeType": "StructuredDocumentation",
+              "src": "359:39:10",
+              "text": "@dev Setup the testing environment."
+            },
+            "functionSelector": "0a9254e4",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setUp",
+            "nameLocation": "412:5:10",
+            "parameters": {
+              "id": 26162,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "417:2:10"
+            },
+            "returnParameters": {
+              "id": 26163,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "427:0:10"
+            },
+            "scope": 26197,
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 26196,
+            "nodeType": "FunctionDefinition",
+            "src": "555:141:10",
+            "nodes": [],
+            "body": {
+              "id": 26195,
+              "nodeType": "Block",
+              "src": "587:109:10",
+              "nodes": [],
+              "statements": [
+                {
+                  "assignments": [
+                    26179
+                  ],
+                  "declarations": [
+                    {
+                      "constant": false,
+                      "id": 26179,
+                      "mutability": "mutable",
+                      "name": "balance",
+                      "nameLocation": "605:7:10",
+                      "nodeType": "VariableDeclaration",
+                      "scope": 26195,
+                      "src": "597:15:10",
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      },
+                      "typeName": {
+                        "id": 26178,
+                        "name": "uint256",
+                        "nodeType": "ElementaryTypeName",
+                        "src": "597:7:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      },
+                      "visibility": "internal"
+                    }
+                  ],
+                  "id": 26187,
+                  "initialValue": {
+                    "arguments": [
+                      {
+                        "arguments": [
+                          {
+                            "id": 26184,
+                            "name": "this",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": -28,
+                            "src": "641:4:10",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_contract$_StakingTest_$26197",
+                              "typeString": "contract StakingTest"
+                            }
+                          }
+                        ],
+                        "expression": {
+                          "argumentTypes": [
+                            {
+                              "typeIdentifier": "t_contract$_StakingTest_$26197",
+                              "typeString": "contract StakingTest"
+                            }
+                          ],
+                          "id": 26183,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": true,
+                          "lValueRequested": false,
+                          "nodeType": "ElementaryTypeNameExpression",
+                          "src": "633:7:10",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_type$_t_address_$",
+                            "typeString": "type(address)"
+                          },
+                          "typeName": {
+                            "id": 26182,
+                            "name": "address",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "633:7:10",
+                            "typeDescriptions": {}
+                          }
+                        },
+                        "id": 26185,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "kind": "typeConversion",
+                        "lValueRequested": false,
+                        "nameLocations": [],
+                        "names": [],
+                        "nodeType": "FunctionCall",
+                        "src": "633:13:10",
+                        "tryCall": false,
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      ],
+                      "expression": {
+                        "id": 26180,
+                        "name": "staking",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 26160,
+                        "src": "615:7:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_contract$_Staking_$26154",
+                          "typeString": "contract Staking"
+                        }
+                      },
+                      "id": 26181,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberLocation": "623:9:10",
+                      "memberName": "balanceOf",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 26153,
+                      "src": "615:17:10",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_external_nonpayable$_t_address_$returns$_t_uint256_$",
+                        "typeString": "function (address) external returns (uint256)"
+                      }
+                    },
+                    "id": 26186,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "nameLocations": [],
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "615:32:10",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "nodeType": "VariableDeclarationStatement",
+                  "src": "597:50:10"
+                },
+                {
+                  "expression": {
+                    "arguments": [
+                      {
+                        "hexValue": "42616c616e63653a",
+                        "id": 26191,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "kind": "string",
+                        "lValueRequested": false,
+                        "nodeType": "Literal",
+                        "src": "669:10:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_stringliteral_c3e9fa045479d9091e5078959e36de2d1a47663159666560c02c8bc470b6112a",
+                          "typeString": "literal_string \"Balance:\""
+                        },
+                        "value": "Balance:"
+                      },
+                      {
+                        "id": 26192,
+                        "name": "balance",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 26179,
+                        "src": "681:7:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_stringliteral_c3e9fa045479d9091e5078959e36de2d1a47663159666560c02c8bc470b6112a",
+                          "typeString": "literal_string \"Balance:\""
+                        },
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      ],
+                      "expression": {
+                        "id": 26188,
+                        "name": "console",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 18077,
+                        "src": "657:7:10",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_contract$_console_$18077_$",
+                          "typeString": "type(library console)"
+                        }
+                      },
+                      "id": 26190,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberLocation": "665:3:10",
+                      "memberName": "log",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 10721,
+                      "src": "657:11:10",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_view$_t_string_memory_ptr_$_t_uint256_$returns$__$",
+                        "typeString": "function (string memory,uint256) view"
+                      }
+                    },
+                    "id": 26193,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "nameLocations": [],
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "657:32:10",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 26194,
+                  "nodeType": "ExpressionStatement",
+                  "src": "657:32:10"
+                }
+              ]
+            },
+            "documentation": {
+              "id": 26175,
+              "nodeType": "StructuredDocumentation",
+              "src": "499:51:10",
+              "text": "@dev Ensure that you can set and get the value."
+            },
+            "functionSelector": "3df77c0e",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "testBalanceOf",
+            "nameLocation": "564:13:10",
+            "parameters": {
+              "id": 26176,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "577:2:10"
+            },
+            "returnParameters": {
+              "id": 26177,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "587:0:10"
+            },
+            "scope": 26197,
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "public"
+          }
+        ],
+        "abstract": false,
+        "baseContracts": [
+          {
+            "baseName": {
+              "id": 26155,
+              "name": "Test",
+              "nameLocations": [
+                "273:4:10"
+              ],
+              "nodeType": "IdentifierPath",
+              "referencedDeclaration": 7908,
+              "src": "273:4:10"
+            },
+            "id": 26156,
+            "nodeType": "InheritanceSpecifier",
+            "src": "273:4:10"
+          }
+        ],
+        "canonicalName": "StakingTest",
+        "contractDependencies": [
+          2693
+        ],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "linearizedBaseContracts": [
+          26197,
+          7908,
+          4978,
+          4715
+        ],
+        "name": "StakingTest",
+        "nameLocation": "258:11:10",
+        "scope": 26198,
+        "usedErrors": []
+      }
+    ],
+    "license": "Unlicense"
+  },
+  "id": 10
+}
