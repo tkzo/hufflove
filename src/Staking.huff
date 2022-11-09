@@ -13,7 +13,7 @@
 #include "huffmate/math/SafeMath.huff"
 #include "huffmate/utils/ReentrancyGuard.huff"
 #include "huffmate/auth/Owned.huff"
-#include "huffmate/token/ERC20.huff"
+#include "huffmate/tokens/ERC20.huff"
 
 // Events
 #define event RewardAdded(uint256)

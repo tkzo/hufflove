@@ -1,2 +1,5 @@
 [profile.default]
 ffi = true
+remappings = [
+    "huffmate/=lib/huffmate/src/",
+]
