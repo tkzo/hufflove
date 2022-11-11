@@ -1,0 +1,842 @@
+{
+  "file": {
+    "path": "src/Staking.huff",
+    "source": "/// @title Staking\n/// @notice SPDX-License-Identifier: MIT\n/// @author takez0_o <https://github.com/takez0o>\n/// @author \n/// @notice Modern and gas efficient implementation of StakingRewards algorithm\n/// @notice Adapted from Synthetix (https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol)\n/// @notice Inspired by HuffMate (https://github.com/pentagonxyz/huffmate)\n\n// Imports\n#include \"huffmate/auth/NonPayable.huff\"\n#include \"huffmate/auth/Owned.huff\"\n#include \"huffmate/data-structures/Hashmap.huff\"\n#include \"huffmate/math/SafeMath.huff\"\n#include \"huffmate/tokens/ERC20.huff\"\n#include \"huffmate/utils/Errors.huff\"\n// #include \"huffmate/utils/ReentrancyGuard.huff\"\n\n// Events\n#define event RewardAdded(uint256)\n#define event Staked(address indexed, uint256)\n#define event Withdrawn(address indexed, uint256)\n#define event RewardPaid(address indexed, uint256)\n#define event RewardsDurationUpdated(uint256)\n#define event Recovered(address, uint256)\n\n// Interface\n#define function totalSupply() view returns(uint256)\n#define function balanceOf(address) view returns (uint256)\n#define function lastTimeRewardApplicable() view returns (uint256)\n#define function rewardPerToken() view returns (uint256)\n#define function earned(address) view returns (uint256)\n#define function getRewardForDuration() view returns (uint256)\n#define function stake(uint256) nonpayable returns () \n#define function withdraw(uint256) nonpayable returns () \n#define function getReward() nonpayable returns ()\n#define function exit() nonpayable returns () \n#define function notifyRewardAmount(uint256) nonpayable returns ()\n#define function recoverERC20(address,uint256) nonpayable returns ()\n#define function setRewardsDuration(uint256) nonpayable returns ()\n\n// Storage\n#define constant REWARDS_TOKEN_SLOT = FREE_STORAGE_POINTER()\n#define constant STAKING_TOKEN_SLOT = FREE_STORAGE_POINTER()\n#define constant PERIOD_FINISH_SLOT = FREE_STORAGE_POINTER()\n#define constant REWARD_RATE_SLOT = FREE_STORAGE_POINTER()\n#define constant REWARDS_DURATION_SLOT = FREE_STORAGE_POINTER()\n#define constant LAST_UPDATE_TIME_SLOT = FREE_STORAGE_POINTER()\n#define constant REWARD_PER_TOKEN_STORED_SLOT = FREE_STORAGE_POINTER()\n#define constant USER_REWARD_PER_TOKEN_PAID_SLOT = FREE_STORAGE_POINTER()\n#define constant REWARDS_SLOT = FREE_STORAGE_POINTER()\n#define constant TOTAL_SUPPLY_SLOT = FREE_STORAGE_POINTER()\n#define constant BALANCES_SLOT = FREE_STORAGE_POINTER()\n\n// Utility Constants\n#define constant UINT_256_MAX = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\n#define constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000\n\n/// @notice Constructor\n/// @notice Sets the initial addresses\n#define macro STAKING_CONSTRUCTOR() = takes (0) returns (0) {}\n\n/// >>>>>>>>>>>>>>>>>>>>>  VIEW FUNCTIONS  <<<<<<<<<<<<<<<<<<<<<< ///\n\n/// @notice Total Supply\n/// @notice Returns the total token supply of the contract\n#define macro TOTAL_SUPPLY() = takes (0) returns (0) {\n    NON_PAYABLE()                       // []\n    [TOTAL_SUPPLY_SLOT] sload           // [supply]\n    0x00 mstore                         // []\n    0x20 0x00 return                    // []\n}\n\n/// @notice Balance Of\n/// @notice Returns the balance of the given address\n#define macro BALANCE_OF() = takes (0) returns (0) {\n    NON_PAYABLE()                                       // []\n    0x04 calldataload                                   // [account]\n    [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)        // [balance]\n    0x00 mstore                                         // []\n    0x20 0x00 return                                    // []\n}\n\n/// @notice Recover ERC-20\n/// @notice Non-Payable function that transfers the given token in given amount to the owner.\n#define macro RECOVER_ERC20() = takes (0) returns (1) {\n    NON_PAYABLE()\n    IS_OWNER()\n    \n    // Setup the stack for the transfer function.\n    0x00 0x00 0x20 0x00         // [argsOffset, argsSize, retOffset, retSize]\n    0x00 0x04 calldataload      // [address, value, argsOffset, argsSize, retOffset, retSize]\n    0x24 calldataload           // [amount, address, value, argsOffset, argsSize, retOffset, retSize]\n    0x00 mstore                 // [address, value, argsOffset, argsSize, retOffset, retSize]\n    gas                         // [gas, address, value, argsOffset, argsSize, retOffset, retSize]\n    call                        // [success]\n\n    emitEventJump jumpi\n    0x00 0x00 revert\n\n    emitEventJump:\n    // Emit the recovered event.\n    0x24 calldataload           // [amount]\n    0x04 calldataload           // [address, amount]\n    __EVENT_HASH(Recovered)     // [sig, address, amount]\n    dup1 0x00 mstore            // [sig, address, amount]\n    0x20 0x00                   // [0, 32, sig, address, amount]\n    log3                        // []\n\n    // Return \"1\" to represent a successful transfer.\n    0x01 0x00 mstore            // []\n    0x20 0x00 return            // []\n}\n\n// Function Dispatching\n#define macro MAIN() = takes (0) returns (0) {\n\n    0x00 calldataload 0xE0 shr\n\n    dup1 __FUNC_SIG(totalSupply)                eq totalSupplyJump                  jumpi\n    dup1 __FUNC_SIG(balanceOf)                  eq balanceOfJump                    jumpi\n    // dup1 __FUNC_SIG(lastTimeRewardApplicable)   eq lastTimeRewardApplicableJump     jumpi\n    // dup1 __FUNC_SIG(rewardPerToken)             eq rewardPerTokenJump               jumpi\n    // dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi\n    // dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi\n    // dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi\n    // dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi\n    // dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi\n    // dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi\n    // dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi\n    dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi\n    // dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi\n\n    // Revert if no functions match\n    0x00 0x00 revert\n\n    totalSupplyJump:\n        TOTAL_SUPPLY()\n    balanceOfJump:\n        BALANCE_OF()\n    // lastTimeRewardApplicableJump:\n    //     LAST_TIME_REWARD_APPLICABLE()\n    // rewardPerTokenJump:\n    //     REWARD_PER_TOKEN()\n    // earnedJump:\n    //     EARNED()\n    // getRewardForDurationJump:\n    //     GET_REWARD_FOR_DURATION()\n    // stakeJump:\n    //     LOCK()\n    //     STAKE()\n    //     finalize jump\n    // withdrawJump:\n    //     LOCK()\n    //     WITHDRAW()\n    //     finalize jump\n    // getRewardJump:\n    //     LOCK()\n    //     GET_REWARD()\n    //     finalize jump\n    // exitJump:\n    //     EXIT()\n    // notifyRewardAmountJump:\n    //     NOTIFY_REWARD_AMOUNT()\n    recoverERC20Jump:\n        RECOVER_ERC20()\n    // setRewardsDurationJump:\n    //     SET_REWARDS_DURATION()\n    \n    finalize:\n        // UNLOCK()\n        stop\n}",
+    "access": null,
+    "dependencies": [
+      {
+        "path": "src/huffmate/auth/NonPayable.huff",
+        "source": "/// @title Non Payable\n/// @notice SPDX-License-Identifier: MIT\n/// @author asnared <https://github.com/abigger87>\n/// @notice Simple macro to revert if a call has a value\n\n#include \"./huffmate/utils/Errors.huff\"\n\n// \"NON_PAYABLE\" Revert Message String\n#define constant NON_PAYABLE_ERROR = 0xb4e4f4e5f50415941424c45000000000000000000000000000000000000000000\n#define constant NON_PAYABLE_LENGTH = 0x0b\n\n/// @notice Reverts if the call has a non-zero value\n/// @notice Reverts with message \"NON_PAYABLE\"\n#define macro NON_PAYABLE() = takes (0) returns (0) {\n    [NON_PAYABLE_ERROR]      // [\"NON_PAYABLE\"]\n    [NON_PAYABLE_LENGTH]     // [11 (length), \"NON_PAYABLE\"]\n    callvalue iszero         // [msg.value == 0, 11 (length), \"NON_PAYABLE\"]\n    REQUIRE()                // []\n}\n",
+        "access": {
+          "secs_since_epoch": 1668024191,
+          "nanos_since_epoch": 236538000
+        },
+        "dependencies": null
+      },
+      {
+        "path": "src/huffmate/auth/Owned.huff",
+        "source": "/// @title Owned\n/// @notice SPDX-License-Identifier: MIT\n/// @author asnared <https://github.com/abigger87>\n/// @notice An single owner authorization module\n/// @notice Adapted from <https://github.com/transmissions11/solmate/blob/main/src/auth/Owned.sol>\n\n// Interface\n#define function setOwner(address) nonpayable returns ()\n#define function owner() view returns (address)\n\n// Events\n#define event OwnerUpdated(address indexed user, address indexed newOwner)\n\n// Storage Slots\n#define constant OWNER = FREE_STORAGE_POINTER()\n\n// CONSTRUCTOR\n#define macro OWNED_CONSTRUCTOR() = takes (0) returns (0) {\n  // Copy the owner into memory\n  0x20                        // [size] - byte size to copy\n  0x20 codesize sub           // [offset, size] - offset in the code to copy from\n  0x00                        // [mem, offset, size] - offset in memory to copy to\n  codecopy                    // []\n\n  // Set the new owner\n  0x00 mload                  // [owner]\n  dup1                        // [owner, owner]\n  [OWNER]                     // [OWNER, owner, owner]\n  sstore                      // [owner]\n\n  // Emit the owner updated event\n  caller                      // [from, owner]\n  __EVENT_HASH(OwnerUpdated)  // [sig, from, owner]\n  0x00 0x00                   // [0, 0, sig, from, owner]\n  log3                        // []\n}\n\n/// @notice Only Owner Modifier\n#define macro IS_OWNER() = takes (0) returns (0) {\n  caller                      // [msg.sender]\n  [OWNER] sload               // [owner, msg.sender]\n  eq authed jumpi             // [authed]\n\n  // Revert otherwise\n  0x00 0x00 revert\n\n  authed:\n}\n\n/// @notice Set the Owner\n/// @param {owner} [address] - The new owner\n#define macro SET_OWNER() = takes (0) returns (0) {\n  // Check that the caller is authorized\n  IS_OWNER()\n\n  // Set the new owner\n  0x04 calldataload           // [newOwner]\n  dup1                        // [newOwner, newOwner]\n  [OWNER] sstore              // [newOwner]\n\n  // Emit the owner updated event\n  caller                      // [from, newOwner]\n  __EVENT_HASH(OwnerUpdated)  // [sig, from, newOwner]\n  0x00 0x00                   // [0, 32, sig, from, newOwner]\n  log3                        // []\n\n  stop\n}\n\n/// @notice Get the owner of the contract\n/// @return {owner} [address] - The owner of the contract\n#define macro OWNER() = takes (0) returns (0) {\n  [OWNER] sload                  // [owner]\n  0x00 mstore                    // []\n  0x20 0x00 return\n}\n\n/// @notice Main Function Dispatcher\n#define macro OWNED_MAIN() = takes (1) returns (1) {\n  // Input Stack: [function_selector]\n\n  dup1 __FUNC_SIG(setOwner) eq set_owner jumpi\n  dup1 __FUNC_SIG(owner)    eq owner jumpi\n\n  // Bubble up to parent macro\n  no_match jump\n\n  set_owner:\n      SET_OWNER()\n  owner:\n      OWNER()\n\n  no_match:\n}",
+        "access": null,
+        "dependencies": []
+      },
+      {
+        "path": "src/huffmate/data-structures/Hashmap.huff",
+        "source": "/// @title HashMap\n/// @notice SPDX-License-Identifier: MIT\n/// @author asnared <https://github.com/abigger87>\n/// @notice A Module Encapsulating HashMap Methods\n/// @notice Adapted from <https://github.com/huff-language/huff-examples/blob/main/erc20/contracts/utils/HashMap.huff>\n\n/// @notice Given a piece of data (ie an address), hash it, generating the storage slot for a hashmap.\n#define macro GET_SLOT_FROM_KEY(mem_ptr) = takes(1) returns (1) {\n    // Input stack: [key]\n    // Load the data into memory and hash it, while preserving the memory location.\n    <mem_ptr>   // [<mem_ptr>, key]\n    mstore      // []\n\n    // Hash the data, generating a key.\n    0x20                // [32]\n    <mem_ptr>           // [<mem_ptr>, 32]\n    sha3                // [slot]\n}\n\n/// @notice Given two keys (ie an address and a number), hash them together, generating a slot for a secondary hashmap.\n///         This should only be used if you have multiple maps in your contract.\n#define macro GET_SLOT_FROM_KEYS(mem_ptr) = takes(2) returns (1) {\n    // Input stack: [key1, key2]\n    // Load the data into memory.\n    <mem_ptr>           // [<mem_ptr>, key1, key2]\n    mstore              // [key2]\n    <mem_ptr> 0x20 add  // [<mem_ptr> + 32, key2]\n    mstore              // []\n\n    // Hash the data, generating a key.\n    0x40        // [64]\n    <mem_ptr>   // [<mem_ptr>, 64]\n    sha3        // [key]\n}\n\n/// @notice Calculate the slot from two keys\n#define macro GET_SLOT_FROM_KEYS_2D(mem_ptr) = takes(3) returns (1) {\n    // Input stack: [slot, key1, key2]\n    // Load the data into memory\n    <mem_ptr>           // [<mem_ptr>, slot, key1, key2]\n    mstore              // [key1, key2]\n\n    // next byte\n    <mem_ptr> 0x20 add  // [<mem_ptr> + 32, key1, key2]\n    mstore              // [key2]\n\n    0x40                // [0x40, key2]\n    <mem_ptr>           // [<mem_ptr>, 0x40, key2]\n    sha3                // [slot1, key2]\n\n    // concat the two keys\n    <mem_ptr> 0x20 add  // [<mem_ptr> + 0x20, key2] put slot1 in memory\n    mstore              // [key2]\n\n    // next byte\n    <mem_ptr>           // [<mem_ptr>, key2]\n    mstore              // []\n\n    // Hash the data, generating a key.\n    0x40                // [0x40]\n    <mem_ptr>           // [<mem_ptr>, 0x40]\n    sha3                // [key]\n}\n\n/// @notice Load an element onto the stack from a key\n#define macro LOAD_ELEMENT(mem_ptr) = takes(1) returns(1) {\n    // Input stack: [key]\n    GET_SLOT_FROM_KEY(<mem_ptr>)    // [slot]\n    sload                           // [value]\n}\n\n/// @notice Load an element onto the stack from two keys\n#define macro LOAD_ELEMENT_FROM_KEYS(mem_ptr) = takes(2) returns(1) {\n    // Input stack: [key1, key2]\n    GET_SLOT_FROM_KEYS(<mem_ptr>)   // [slot]\n    sload                           // [value]\n}\n\n/// @notice Load an element onto the stack from a slot and two keys\n#define macro LOAD_ELEMENT_FROM_KEYS_2D(mem_ptr) = takes(3) returns(1) {\n    // Input stack: [slot, key1, key2]\n    GET_SLOT_FROM_KEYS_2D(<mem_ptr>) // [slot]\n    sload                            // [value]\n}\n\n/// @notice Store an element from a key\n#define macro STORE_ELEMENT(mem_ptr) = takes(2) returns(0) {\n    // Input stack: [key, value]\n    GET_SLOT_FROM_KEY(<mem_ptr>)    // [slot, value]\n    sstore                          // []\n}\n\n/// @notice Store an element from two keys\n#define macro STORE_ELEMENT_FROM_KEYS(mem_ptr) = takes(3) returns (0) {\n    // Input stack: [key1, key2, value]\n    GET_SLOT_FROM_KEYS(<mem_ptr>)   // [slot, value]\n    sstore                          // []\n}\n\n/// @notice Store an element from a slot and two keys\n#define macro STORE_ELEMENT_FROM_KEYS_2D(mem_ptr) = takes(4) returns (0) {\n    // Input stack: [slot, key1, key2, value]\n    GET_SLOT_FROM_KEYS_2D(<mem_ptr>)    // [slot, value]\n    sstore                              // []\n}",
+        "access": null,
+        "dependencies": []
+      },
+      {
+        "path": "src/huffmate/math/SafeMath.huff",
+        "source": "/// @title SafeMath\n/// @notice SPDX-License-Identifier: MIT\n/// @author kadenzipfel <https://github.com/kadenzipfel>\n/// @notice Math module over Solidity's arithmetic operations with safety checks\n/// @notice Adapted from OpenZeppelin (https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol)\n\n#include \"./huffmate/utils/Errors.huff\"\n\n// Interface\n#define function safeAdd(uint256,uint256) pure returns (uint256)\n#define function safeSub(uint256,uint256) pure returns (uint256)\n#define function safeMul(uint256,uint256) pure returns (uint256)\n#define function safeDiv(uint256,uint256) pure returns (uint256)\n#define function safeMod(uint256,uint256) pure returns (uint256)\n\n/// @notice Adds two numbers and reverts on overflow\n#define macro SAFE_ADD() = takes (2) returns (1) {\n    // input stack          // [num1, num2]\n    dup2                    // [num2, num1, num2]\n    add                     // [result, num2]\n    dup1                    // [result, result, num2]\n    swap2                   // [num2, result, result]\n    gt                      // [is_overflow, result]\n    iszero                  // [is_not_overflow, result]\n    is_not_overflow jumpi   // [result]\n        [ARITHMETIC_OVERFLOW] PANIC()\n    is_not_overflow:        // [result]\n}\n\n/// @notice Subtracts two numbers and reverts on underflow\n#define macro SAFE_SUB() = takes (2) returns (1) {\n    // input stack          // [num1, num2]\n    dup1                    // [num1, num1, num2]\n    dup3                    // [num2, num1, num1, num2]\n    gt                      // [is_underflow, num1, num2]\n    iszero                  // [is_not_underflow, num1, num2]\n    is_not_underflow jumpi  // [num1, num2]\n        [ARITHMETIC_OVERFLOW] PANIC()\n    is_not_underflow:       // [num1, num2]\n    sub                     // [result]\n}\n\n/// @notice Multiplies two numbers and reverts on overflow\n#define macro SAFE_MUL() = takes (2) returns (1) {\n    // input stack              // [num1, num2]\n    dup1                        // [num1, num1, num2]\n    is_not_zero jumpi           // [num1, num2]\n        mul                     // [result]\n        0x01 is_not_overflow jumpi\n    is_not_zero:                // [num1, num2]\n    dup2                        // [num2, num1, num2]\n    dup2                        // [num1, num2, num1, num2]\n    mul                         // [result, num1, num2]\n    swap1                       // [num1, result, num2]\n    dup2                        // [result, num1, result, num2]\n    div                         // [div_check, result, num2]\n    swap1                       // [result, div_check, num2]\n    swap2                       // [num2, div_check, result]\n    eq                          // [is_not_overflow, result]\n    is_not_overflow jumpi       // [result]\n        [ARITHMETIC_OVERFLOW] PANIC()\n    is_not_overflow:\n}\n\n/// @notice Divides two numbers and reverts on division by zero\n#define macro SAFE_DIV() = takes (2) returns (1) {\n    // input stack          // [num1, num2]\n    dup2                    // [num2, num1, num2]\n    0x00 swap1              // [num2, 0, num1, num2]\n    gt                      // [is_not_div_zero, num1, num2]\n    is_not_div_zero jumpi\n        [DIVIDE_BY_ZERO] PANIC()\n    is_not_div_zero:\n    div                     // [result]\n}\n\n/// @notice Divides two numbers and reverts on division by zero or modulo zero\n#define macro SAFE_MOD() = takes (2) returns (1) {\n    // input stack          // [num1, num2]\n    dup2                    // [num2, num1, num2]\n    0x00 swap1              // [num2, 0, num1, num2]\n    gt                      // [is_not_mod_zero, num1, num2]\n    is_not_mod_zero jumpi\n        [ARITHMETIC_OVERFLOW] PANIC()\n    is_not_mod_zero:\n    mod                     // [result]\n}",
+        "access": {
+          "secs_since_epoch": 1668024191,
+          "nanos_since_epoch": 236578000
+        },
+        "dependencies": null
+      },
+      {
+        "path": "src/huffmate/tokens/ERC20.huff",
+        "source": "/// @title ERC20\n/// @notice SPDX-License-Identifier: MIT\n/// @author asnared <https://github.com/abigger87>\n/// @author devtooligan <https://github.com/devtooligan>\n/// @notice Modern and gas efficient ERC20 + EIP-2612 implementation\n/// @notice Adapted from Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC20.sol)\n\n// Imports\n#include \"./huffmate/utils/Errors.huff\"\n#include \"./huffmate/auth/NonPayable.huff\"\n#include \"./huffmate/data-structures/Hashmap.huff\"\n\n// Interface\n#define function allowance(address,address) view returns (uint256)\n#define function approve(address,uint256) nonpayable returns ()\n#define function balanceOf(address) view returns (uint256)\n#define function DOMAIN_SEPARATOR() view returns (bytes32)\n#define function nonces(address) view returns (uint256)\n#define function permit(address,address,uint256,uint256,uint8,bytes32,bytes32) nonpayable returns ()\n#define function totalSupply() view returns (uint256)\n#define function transfer(address,uint256) nonpayable returns ()\n#define function transferFrom(address,address,uint256) nonpayable returns ()\n\n// Events\n#define event Approval(address indexed, address indexed, uint256)\n#define event Transfer(address, address, uint256)\n\n// Metadata\n#define function decimals() nonpayable returns (uint256)\n#define function name() nonpayable returns (string)\n#define function symbol() nonpayable returns (string)\n\n// META_NAME = \"Token\"\n#define constant META_NAME = 0x546f6b656e000000000000000000000000000000000000000000000000000000\n#define constant META_NAME_LENGTH = 0x05\n\n// META_SYMBOL = \"TKN\"\n#define constant META_SYMBOL = 0x544B4E0000000000000000000000000000000000000000000000000000000000\n#define constant META_SYMBOL_LENGTH = 0x03\n\n\n// ERC20 Storage\n#define constant TOTAL_SUPPLY_SLOT = FREE_STORAGE_POINTER()\n#define constant BALANCE_SLOT = FREE_STORAGE_POINTER()\n#define constant APPROVAL_SLOT = FREE_STORAGE_POINTER()\n#define constant DECIMALS_SLOT = FREE_STORAGE_POINTER()\n\n// EIP-2612 STORAGE\n#define constant INITIAL_CHAIN_ID = FREE_STORAGE_POINTER()\n#define constant INITIAL_DOMAIN_SEPARATOR = FREE_STORAGE_POINTER()\n#define constant NONCE_SLOT = FREE_STORAGE_POINTER()\n\n// PERMIT_TYPEHASH = keccak256(\"Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)\")\n#define constant PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9\n#define constant X_1901 = 0x1901000000000000000000000000000000000000000000000000000000000000\n\n// Utility Constants\n#define constant UINT_256_MAX = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\n#define constant ERROR_SIG = 0x08c379a000000000000000000000000000000000000000000000000000000000\n#define constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000\n\n/// @notice Constructor\n/// @notice Sets the initial domain separator and chain ID\n#define macro ERC20_CONSTRUCTOR() = takes (0) returns (0) {\n    // Copy the decimals into memory from the bytecode\n    0x20                                    // [size] - byte size to copy\n    0x20 codesize sub                       // [offset, size] - offset in the code to copy from\n    0x00                                    // [mem, offset, size] - offset in memory to copy to\n    codecopy                                // []\n\n    // Copy the decimals from memory into the DECIMALS_SLOT storage location\n    0x00 mload                              // [decimals]\n    [DECIMALS_SLOT] sstore                  // []\n\n    chainid [INITIAL_CHAIN_ID] sstore       // []\n    COMPUTE_DOMAIN_SEPARATOR()              // [DOMAIN SEPARATOR]\n    [INITIAL_DOMAIN_SEPARATOR] sstore       // []\n}\n\n/// @notice Approve\n/// @notice Grants approval to an operator to transfer tokens on behalf of the sender.\n#define macro APPROVE() = takes (0) returns (0) {\n    NON_PAYABLE()                           // []\n\n    0x24 calldataload                       // [value]\n    0x04 calldataload                       // [to, value]\n    caller                                  // [from, to, value]\n    [APPROVAL_SLOT]                         // [slot, from, to, value]\n    STORE_ELEMENT_FROM_KEYS_2D(0x00)        // []\n\n    // Emit the Approval event\n    0x24 calldataload                       // [value]\n    0x00 mstore                             // []\n    0x04 calldataload                       // [to]\n    caller                                  // [from, to]\n    __EVENT_HASH(Approval)                  // [sig, from, to]\n    0x20 0x00                               // [0, 32, sig, from, to]\n    log3                                    // []\n\n    // Return 01 for true\n    0x01 0x00 mstore                        // []\n    0x20 0x00 return                        // []\n}\n\n/// @notice Transfer\n/// @notice Non-Payable function that transfers an amount of tokens from the sender to a recipient.\n#define macro TRANSFER() = takes (0) returns (0) {\n    NON_PAYABLE()\n\n    // Setup the stack for the transfer function.\n    0x04 calldataload           // [to]\n    caller                      // [from, to]\n    0x24 calldataload           // [value, from, to]\n\n    // Update the balances of the sender and recipient.\n    _TRANSFER_TAKE_FROM()       // [value, from, to]\n    _TRANSFER_GIVE_TO()         // [value, from, to]\n\n    // Emit the transfer event.\n    0x00 mstore                 // [from, to]\n    __EVENT_HASH(Transfer)      // [sig, from, to]\n    0x20 0x00                   // [0, 32, sig, from, to]\n    log3                        // []\n\n    // Return \"1\" to represent a succesful transfer.\n    0x01 0x00 mstore            // []\n    0x20 0x00 return            // []\n}\n\n/// @notice Transfer From\n/// @notice Non-Payable function that transfers an amount of tokens from an address to a recipient.\n#define macro TRANSFER_FROM() = takes (0) returns (0) {\n    NON_PAYABLE()                           // []\n\n    // Setup the stack for the transfer function.\n    0x24 calldataload                       // [to]\n    0x04 calldataload                       // [from, to]\n    caller                                  // [msg.sender, from, to]\n    dup2                                    // [from, msg.sender, from, to]\n    [APPROVAL_SLOT]                         // [slot, from, msg.sender, from, to]\n\n    // Check for max approval\n    LOAD_ELEMENT_FROM_KEYS_2D(0x00)         // [approved, from, to]\n    dup1                                    // [approved, approved, from, to]\n    0x44 calldataload                       // [value, approved, approved, from, to]\n\n    // Check isOwner\n    dup4                                    // [from, value, approved, approved, from, to]\n    caller                                  // [msg.sender, from, value, approved, approved, from, to]\n    eq                                      // [msg.sender == from, value, approved, approved, from, to]\n    approved1 jumpi                         // [value, approved, approved, from, to]\n\n    // Check max approval\n    dup2                                    // [approved, value, approved, approved, from, to]\n    [UINT_256_MAX]                          // [type(uint).max, approved, value, approved, approved, from, to]\n    eq                                      // [type(uint).max == approved, value, approved, approved, from, to]\n    approved1 jumpi                         // [value, approved, approved, from, to]\n\n    // Check has approval\n    gt                                      // [value > approved, approved, from, to]\n    insufficientApproval jumpi              // [approved, from, to]\n\n    // Adjust approval\n    0x44 calldataload                       // [value, approved, from, to]\n    swap1                                   // [approved, value, from, to]\n    sub                                     // [approved - value => newApprovalValue, from, to]\n    caller                                  // [msg.sender, newApprovalValue, from, to]\n    dup3                                    // [from, msg.sender, newApprovalValue, from, to]\n    [APPROVAL_SLOT]                         // [slot, from, msg.sender, newApprovalValue, from, to]\n    STORE_ELEMENT_FROM_KEYS_2D(0x00)        // [from, to]\n    approved2 jump                          // [from, to]\n\n    approved1:                              // [value, approved, approved, from, to]\n        pop pop pop                         // [from, to]\n\n    approved2:                              // [from, to]\n        0x44 calldataload                   // [value, from, to]\n\n        // Update the balances of the sender and recipient.\n        _TRANSFER_TAKE_FROM()               // [value, from, to]\n        _TRANSFER_GIVE_TO()                 // [value, from, to]\n\n        // Emit the transfer event.\n        0x00 mstore                         // [from, to]\n        __EVENT_HASH(Transfer)              // [sig, from, to]\n        0x20 0x00                           // [0, 32, sig, from, to]\n        log3                                // []\n\n        // Return \"1\" to represent a succesful transfer.\n        0x01 0x00 mstore                    // []\n        0x20 0x00 return                    // []\n\n    insufficientApproval:\n        0x00 0x00 revert                    // []\n}\n\n/// @notice Transfers an amount of tokens from\n#define macro _TRANSFER_TAKE_FROM() = takes (3) returns (3) {\n    // input stack: [value, from, to]\n    dup2 [BALANCE_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)        // [balance, value, from, to]                                                // [from, value, from, to]\n    dup1                                                    // [balance, balance, value, from, to]\n    dup3                                                    // [value, balance, balance, value, from, to]\n    gt                                                      // [value > balance, balance, value, from, to]\n    iszero                                                  // [value <= balance, balance, value, from, to]\n    valid jumpi                                             // [balance, value, from, to]\n\n    // Insufficient balance\n    0x00 0x00 revert                                        // []\n\n    // Update the sender's balance.\n    valid:\n        dup2                                                // [value, balance, value, from, to]\n        swap1                                               // [balance, value, value, from, to]\n        sub                                                 // [balance - value, value, from, to]\n        dup3                                                // [from, balance - value, value, from, to]\n        [BALANCE_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)        // [value, from, to]\n}\n\n/// @notice Transfers an amount of tokens from one address to another.\n#define macro _TRANSFER_GIVE_TO() = takes (3) returns (3) {\n    // input stack: [value, from, to]\n    dup3                                                // [to, value, from, to]\n    dup2                                                // [value, to, value, from, to]\n    swap1                                               // [to, value, value, from, to]\n    [BALANCE_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)         // [balance, value, value, from, to]\n    add                                                 // [balance + value, value, from, to]\n    dup4                                                // [to, balance + value, value, from, to]\n    [BALANCE_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)        // [value, from, to]\n}\n\n/// @notice Approve\n/// @notice Approves an address to spend an amount of tokens on the caller's behalf\n#define macro APPROVE() = takes (0) returns (0) {\n    0x24 calldataload                           // [value]\n    dup1 0x00 mstore                            // [value]\n    0x04 calldataload                           // [to, value]\n    caller                                      // [from, to, value]\n\n    // Emit the approval event.\n    dup2 dup2                                   // [from, to, from, to, value]\n    __EVENT_HASH(APPROVAL_EVENT_SIGNATURE)      // [sig, from, to, from, to, value]\n    0x20 0x00                                   // [0, 32, sig, from, to, from, to, value]\n    log3                                        // [from, to, value]\n\n    // Store the value at slot = keccak256(from . to)\n    STORE_ELEMENT_FROM_KEYS(0x00)\n}\n\n/// @notice Domain Separator\n/// @notice Returns the EIP-712 domain separator\n#define macro DOMAIN_SEPARATOR() = takes (0) returns (0) {\n    NON_PAYABLE()                   // []\n    _DOMAIN_SEPARATOR()             // [domain separator]\n    0x00 mstore                     // [domain separator]\n    0x20 0x00 return                // []\n}\n\n/// @notice Loads the EIP-712 domain separator\n#define macro _DOMAIN_SEPARATOR() = takes (0) returns (1) {\n    chainid                                     // [chainid]\n    [INITIAL_CHAIN_ID] sload                    // [INITIAL_CHAIN_ID, chainid]\n    eq                                          // [INITIAL_CHAIN_ID == chainid]\n    useInitial jumpi                            // []\n    COMPUTE_DOMAIN_SEPARATOR()                  // [computed domain separator]\n    done jump\n\n    useInitial:\n        [INITIAL_DOMAIN_SEPARATOR] sload        // [INITIAL_DOMAIN_SEPARATOR]\n\n    done:\n}\n\n/// @notice Computes the EIP-712 domain separator\n#define macro COMPUTE_DOMAIN_SEPARATOR() = takes (0) returns (1) {\n    // WARNING: 0x00 - 0x3f (64 bytes): scratch space for hashing methods\n    // AS SUCH, WE STORE VARIABLES IN MEMORY STARTING AT 0x40\n    [PERMIT_TYPEHASH] 0x40 mstore   // []\n    [META_NAME] 0x60 mstore         // []\n    0x20 0x60 sha3 0x60 mstore      // []\n\n    // 0x31 is hex for ascii for 1\n    0x31 0x80 mstore                // []\n    0x02 0x80 sha3 0x80 mstore      // [hash of \"1\"]\n\n    chainid 0xa0 mstore             // [chainid]\n    address 0xc0 mstore             // [address(this)]\n\n    0xA0 0x40 sha3                  // [hash]\n}\n\n/// @notice Permit\n/// @notice EIP 2612 Signed Approvals\n#define macro PERMIT() = takes (0) returns (0) {\n    NON_PAYABLE()\n    // function permit arg    calldata loc\n    //     address owner         0x04\n    //     address spender       0x24\n    //     uint256 value         0x44\n    //     uint256 deadline      0x64\n    //     uint8 v               0x84\n    //     bytes32 r             0xa4\n    //     bytes32 s             0xc4\n\n    // check deadline\n    0x64 calldataload                       // [deadline]\n    dup1                                    // [deadline, deadline]\n    timestamp                               // [timestamp, deadline, deadline]\n    gt                                      // [timestamp > deadline, deadline]\n    expired jumpi                           // [deadline]\n\n    // Calculate inner keccak\n    // keccak256(\n    //      abi.encode(\n    //        PERMIT_TYPEHASH,\n    //        owner,\n    //        spender,\n    //        value,\n    //        nonces[owner]++,\n    //        deadline\n    //      )\n    // )\n    0x04 calldataload                       // [owner, deadline]\n    _NONCE_PLUS_PLUS()                      // [nonce, deadline]\n    0x44 calldataload                       // [value, nonce, deadline]\n    0x24 calldataload                       // [spender, value, nonce, deadline]\n    0x04 calldataload                       // [owner, spender, value, nonce, deadline]\n    [PERMIT_TYPEHASH]                       // [permit hash, owner, spender, value, nonce, deadline]\n    0x00 mstore                             // [owner, spender, value, nonce, deadline]\n    0x20 mstore                             // [spender, value, nonce, deadline]\n    0x40 mstore                             // [value, nonce, deadline]\n    0x60 mstore                             // [nonce, deadline]\n    0x80 mstore                             // [deadline]\n    0xa0 mstore                             // []\n    0xc0 0x00                               // [loc, len]\n    sha3                                    // [inner hash]\n\n    // Grab the domain separator\n    _DOMAIN_SEPARATOR()                     // [domain separator, inner hash]\n    [X_1901]                                // [x1901, domain separator, inner hash]\n\n    // Bitwise shifts\n    dup3 0xf0 shl                           // [inner hash << 0xf0, x1901, domain separator, inner hash]\n\n    // Create the second word\n    dup3 0xf0 shl                           // [domain separator << 0xf0, inner hash << 0xf0, x1901, domain separator, inner hash]\n    dup5 0x10 shr or                        // [domain separator << 0xf0 | inner hash >> 0x10, inner hash << 0xf0, x1901, domain separator, inner hash]\n\n    // Create the first word\n    dup4 dup4 swap1 0x10 shr or             // [x1901 | domain separator >> 0x10, domain separator << 0xf0 | inner hash >> 0x10, inner hash << 0xf0, x1901, domain separator, inner hash]\n\n    // Prepare memory mstore outer keccak\n    0x40 mstore                             // [domain separator << 0xf0 | inner hash >> 0x10, inner hash << 0xf0, x1901, domain separator, inner hash]\n    0x60 mstore                             // [inner hash << 0xf0, x1901, domain separator, inner hash]\n    0x80 mstore                             // [x1901, domain separator, inner hash]\n    0x42 0x40                               // [loc, len, x1901, domain separator, inner hash]\n    sha3                                    // [outer hash, x1901, domain separator, inner hash]\n\n    // Store signature in memory                                 memory layout:\n    0x00 mstore                             // []                0x00 outer hash\n    0x84 calldataload                       // [v]\n    0x20 mstore                             // []                0x00 outerhash 0x20 v\n    0xa4 calldataload                       // [r]\n    0x40 mstore                             // []                0x00 outerhash 0x20 v 0x40 r\n    0xc4 calldataload                       // [s]\n    0x60 mstore                             // []                0x00 outerhash 0x20 v 0x40 r 0x60 s\n\n    // Prepare stack for later\n    0x44 calldataload                       // [value]\n    0x24 calldataload                       // [spender, value]\n\n    // ecrecover\n    0x20                                    // [32, spender, value]\n    0x80                                    // [128, 32, spender, value]\n    0x80                                    // [128, 128, 32, spender, value]\n    0x00                                    // [0, 128, 128, 32, spender, value]\n    0x1                                     // [ecrecover precompile address, 0, 128, 128, 32, spender, value]\n    0xFFFFFFFF                              // [gas, ecrecover precompile address, 0, 128, 128, 32, spender, value]\n    staticcall                              // [success, spender, value]\n\n    // Revert invalid signer if call failed\n    iszero invalidSigner jumpi              // [spender, value]\n\n    // Load the recovered address from memory\n    0x80 mload                              // [recovered address, spender, value]\n\n    // check for recovered 0 address\n    dup1                                    // [recovered address, recovered address, spender, value]\n    0x00 eq                                 // [recovered address == 0, recovered address, spender, value]\n    invalidSigner jumpi                     // [recovered address, spender, value]\n\n    // check for address is owner\n    dup1                                    // [recovered address, recovered address, spender, value]\n    0x04 calldataload                       // [owner, recovered address, recovered address, spender, value]\n    eq                                      // [owner == recovered address, recovered address, spender, value]\n    iszero                                  // [owner != recovered address, recovered address, spender, value]\n    invalidSigner jumpi                     // [recovered address, spender, value]\n    [APPROVAL_SLOT]                         // [slot, recovered address, spender, value]\n    STORE_ELEMENT_FROM_KEYS_2D(0x00)        // []\n\n    // Emit the Approval event\n    0x44 calldataload                       // [value]\n    0x00 mstore                             // []\n    0x24 calldataload                       // [to]\n    0x04 calldataload                       // [from, to]\n    __EVENT_HASH(Approval)                  // [sig, from, to]\n    0x20 0x00                               // [0, 32, sig, from, to]\n    log3                                    // []\n\n    // Stop Execution\n    stop                                    // []\n\n    expired:\n        0x5045524D49545F444541444C494E455F45585049524544000000000000000000         // [\"PERMIT_DEADLINE_EXPIRED\"]\n        0x17                                                                       // [23 (length), \"PERMIT_DEADLINE_EXPIRED\"]\n        0x00                                                                       // [0, 23 (length), \"PERMIT_DEADLINE_EXPIRED\"]\n        REQUIRE()\n\n    invalidSigner:\n        0x494E56414C49445F5349474E4552000000000000000000000000000000000000         // [\"INVALID_SIGNER\"]\n        0x0e                                                                       // [14 (length), \"INVALID_SIGNER\"]\n        0x00                                                                       // [0, 14 (length), \"INVALID_SIGNER\"]\n        REQUIRE()\n}\n\n/// @notice Takes an address off the stack, returns the current nonce for that address onto the stack.\n/// @notice Increments the nonce for next time,\n#define macro _NONCE_PLUS_PLUS() = takes (1) returns (1) {\n    // input stack                                  // [account]\n    dup1                                            // [account, account]\n    [NONCE_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)       // [currentNonce, account]\n    dup1                                            // [currentNonce, currentNonce, account]\n    0x01                                            // [1, currentNonce, currentNonce, account]\n    add                                             // [nextNonce, currentNonce, account]\n    dup3                                            // [account, nextNonce, currentNonce, account]\n    [NONCE_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)      // [currentNonce, account]\n    swap1 // clean up stack                         // [account, currentNonce]\n    pop   // clean up stack                         // [currentNonce]\n}\n\n/// @notice Nonces\n/// @notice Returns the current nonce for an account\n#define macro NONCES() = takes (0) returns (0) {\n    0x04 calldataload                               // [account]\n    [NONCE_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)       // [nonce]\n    0x00 mstore                                     // []\n    0x20 0x00 return                                // []\n}\n\n/// @notice Name\n/// @notice Returns the token name string\n#define macro NAME() = takes (0) returns (0) {\n    NON_PAYABLE()                       // []\n    0x20 0x00 mstore                    // []\n    [META_NAME_LENGTH] 0x20 mstore      // []\n    [META_NAME] 0x40 mstore             // []\n    0x60 0x00 return                    // []\n}\n\n/// @notice Symbol\n/// @notice Returns the symbol of the token\n#define macro SYMBOL() = takes (0) returns (0) {\n    NON_PAYABLE()                       // []\n    0x20 0x00 mstore                    // []\n    [META_SYMBOL_LENGTH] 0x20 mstore    // []\n    [META_SYMBOL] 0x40 mstore           // []\n    0x60 0x00 return                    // []\n}\n\n/// @notice Decimals\n/// @notice Returns the token decimal representation\n#define macro DECIMALS() = takes (0) returns (0) {\n    NON_PAYABLE()                       // []\n    [DECIMALS_SLOT] sload               // [decimals]\n    0x00 mstore                         // []\n    0x20 0x00 return                    // []\n}\n\n/// @notice Balance Of\n/// @notice Returns the token balance of an address\n#define macro BALANCE_OF() = takes (0) returns (0) {\n    NON_PAYABLE()                                   // []\n    0x04 calldataload                               // [account]\n    [BALANCE_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)     // [balance]\n    0x00 mstore                                     // []\n    0x20 0x00 return                                // []\n}\n\n/// @notice Total Supply\n/// @notice Returns the total supply of the token\n#define macro TOTAL_SUPPLY() = takes (0) returns (0) {\n    NON_PAYABLE()                       // []\n    [TOTAL_SUPPLY_SLOT] sload           // [supply]\n    0x00 mstore                         // []\n    0x20 0x00 return                    // []\n}\n\n/// @notice Allowance\n/// @notice Returns the amount which a spender is allowed to transfer on behalf of an owner\n#define macro ALLOWANCE() = takes (0) returns (0) {\n    NON_PAYABLE()                       // []\n    0x24 calldataload                   // [to]\n    0x04 calldataload                   // [from, to]\n    [APPROVAL_SLOT]                     // [slot, from, to]\n    LOAD_ELEMENT_FROM_KEYS_2D(0x00)     // [allowance]\n    0x00 mstore                         // []\n    0x20 0x00 return                    // []\n}\n\n// MINT/BURN LOGIC\n\n#define macro _BURN() = takes(2) returns (0) {\n    // stack input: [value, from]\n    [ZERO_ADDRESS]                  // [zero, value, from]\n    swap2 swap1                     // [value, from, zero]\n\n    _TRANSFER_TAKE_FROM()           // [value, from, zero]\n    dup1                            // [value, value, from, zero]\n    [TOTAL_SUPPLY_SLOT] sload       // [supply, value, value, from, zero]\n    sub                             // [supply-value, value, from, zero]\n    [TOTAL_SUPPLY_SLOT] sstore      // [value, from, zero]\n\n    // Emit the transfer event.\n    0x00 mstore                     // [from, zero]\n    __EVENT_HASH(Transfer)          // [sig, from, zero]\n    0x20 0x00                       // [0, 32, sig, from, zero]\n    log3                            // []\n}\n\n/// @notice Mints tokens to a specified address\n#define macro _MINT() = takes (2) returns (0) {\n    // Input stack: [value, to]\n    dup2                            // [to, value, to]\n    swap1                           // [value, to, to]\n    _TRANSFER_GIVE_TO()             // [value, to, to]\n\n    // Update totalSupply\n    dup1                            // [value, value, to, to]\n    [TOTAL_SUPPLY_SLOT] sload       // [supply, value, value, to, to]\n    add                             // [supply + value, value, to, to]\n    [TOTAL_SUPPLY_SLOT] sstore      // [value, to, to]\n\n    // Emit the transfer event.\n    0x00 mstore                     // [to, to]\n    [ZERO_ADDRESS]                  // [address(0), to, to]\n    __EVENT_HASH(Transfer)          // [sig, from, to, to]\n    0x20 0x00                       // [0, 32, sig, from, to, to]\n    log3 pop                        // []\n}\n\n\n// Function Dispatching\n#define macro ERC20_MAIN() = takes (1) returns (1) {\n    // Identify which function is being called.\n    // [func sig]\n\n    dup1 __FUNC_SIG(permit)             eq permitJump           jumpi\n    dup1 __FUNC_SIG(nonces)             eq noncesJump           jumpi\n\n    dup1 __FUNC_SIG(name)               eq nameJump             jumpi\n    dup1 __FUNC_SIG(symbol)             eq symbolJump           jumpi\n    dup1 __FUNC_SIG(decimals)           eq decimalsJump         jumpi\n    dup1 __FUNC_SIG(DOMAIN_SEPARATOR)   eq domainSeparatorJump  jumpi\n\n    dup1 __FUNC_SIG(totalSupply)        eq totalSupplyJump      jumpi\n    dup1 __FUNC_SIG(balanceOf)          eq balanceOfJump        jumpi\n    dup1 __FUNC_SIG(allowance)          eq allowanceJump        jumpi\n\n    dup1 __FUNC_SIG(transfer)           eq transferJump         jumpi\n    dup1 __FUNC_SIG(transferFrom)       eq transferFromJump     jumpi\n    dup1 __FUNC_SIG(approve)            eq approveJump          jumpi\n\n    // Bubble up to the parent macro\n    no_match jumpi\n\n    allowanceJump:\n        ALLOWANCE()\n    approveJump:\n        APPROVE()\n    balanceOfJump:\n        BALANCE_OF()\n    decimalsJump:\n        DECIMALS()\n    domainSeparatorJump:\n        DOMAIN_SEPARATOR()\n    nameJump:\n        NAME()\n    noncesJump:\n        NONCES()\n    permitJump:\n        PERMIT()\n    symbolJump:\n        SYMBOL()\n    totalSupplyJump:\n        TOTAL_SUPPLY()\n    transferFromJump:\n        TRANSFER_FROM()\n    transferJump:\n        TRANSFER()\n\n    no_match:\n}",
+        "access": {
+          "secs_since_epoch": 1668024191,
+          "nanos_since_epoch": 236668000
+        },
+        "dependencies": null
+      },
+      {
+        "path": "src/huffmate/utils/Errors.huff",
+        "source": "/// @title Errors\n/// @notice SPDX-License-Identifier: MIT\n/// @author jtriley.eth\n/// @author clabby <https://github.com/clabby>\n/// @notice Custom error utilities.\n\n// https://docs.soliditylang.org/en/latest/control-structures.html?highlight=panic#panic-via-assert-and-error-via-require\n\n// Errors\n#define error Error(string)\n#define error Panic(uint256)\n\n// Constants\n// Solidity Panic Codes\n#define constant COMPILER_PANIC = 0x00\n#define constant ASSERT_FALSE = 0x01\n#define constant ARITHMETIC_OVERFLOW = 0x11\n#define constant DIVIDE_BY_ZERO = 0x12\n#define constant INVALID_ENUM_VALUE = 0x21\n#define constant INVALID_STORAGE_BYTE_ARRAY = 0x22\n#define constant EMPTY_ARRAY_POP = 0x31\n#define constant ARRAY_OUT_OF_BOUNDS = 0x32\n#define constant MEMORY_TOO_LARGE = 0x41\n#define constant UNINITIALIZED_FUNCTION_POINTER = 0x51\n\n/*\n\nSolidity Require. Error `string` MUST be no greater than 32 bytes.\n\nMEMORY LAYOUT WHEN THROWN\n| sig    || message offset                                                 || message length                                                 || message \"revert\"                                               |\n0x08c379a  0000000000000000000000000000000000000000000000000000000000000020  0000000000000000000000000000000000000000000000000000000000000006  7265766572740000000000000000000000000000000000000000000000000000\n\n*/\n#define macro REQUIRE() = takes (3) returns (0) {\n    // takes:       // [condition, message_length, message]\n    do_not_throw    // [do_not_throw_jumpdest, condition, message_length, message]\n    jumpi           // [message_length, message]\n    __ERROR(Error)  // [error_sig, , message_length, message]\n    0x00            // [mem_ptr, error_sig, message_length, message]\n    mstore          // [message_length, message]\n    0x20            // [message_offset, message_length, message]\n    0x04            // [message_offset_ptr, message_offset, message_length, message]\n    mstore          // [message_length, message]\n    0x24            // [message_length_ptr, message_length, message]\n    mstore          // [message]\n    0x44            // [message_ptr, message]\n    mstore          // []\n    0x80            // [size]\n    0x00            // [offset, size]\n    revert          // []\n    do_not_throw:   // [message_length, message]\n        pop         // [message]\n        pop         // []\n}\n\n/*\n\nSolidity Panic.\n\nMEMORY LAYOUT WHEN THROWN\n| sig     || panic code                                                     |\n0x4e487b71  0000000000000000000000000000000000000000000000000000000000000001\n\n*/\n#define macro PANIC() = takes (1) returns (0) {\n    // takes:       // [panic_code]\n    __ERROR(Panic)  // [panic_sig, panic_code]\n    0x00            // [panic_sig_offset, panic_sig, panic_code]\n    mstore          // [panic_code]\n    0x04            // [panic_code_offset, panic_code]\n    mstore          // []\n    0x24            // [revert_size]\n    0x00            // [revert_offset, revert_size]\n    revert          // []\n}\n\n/*\nSolidity Assert.\n\nMEMORY LAYOUT WHEN THROWN\n| sig     || assert failed panic code                                       |\n0x4e487b71  0000000000000000000000000000000000000000000000000000000000000001\n\n*/\n#define macro ASSERT() = takes (1) returns (0) {\n    // takes:               // [condition]\n    do_not_panic            // [do_not_panic_jumpdest, condition]\n    jumpi                   // []\n    [ASSERT_FALSE]          // [assert_false]\n    PANIC()                 // []\n    do_not_panic:           // []\n}\n\n// Assert that two stack elements are equal\n#define macro ASSERT_EQ() = takes (0) returns (0) {\n    // takes:             [a, b]\n    eq                 // [a == b]\n    ASSERT()           // []\n}\n\n// Assert that two stack elements are not equal\n#define macro ASSERT_NOT_EQ() = takes (0) returns (0) {\n    // takes:             [a, b]\n    eq iszero          // [a != b]\n    ASSERT()           // []\n}\n\n// Assert that two memory offsets contain equal words\n#define macro ASSERT_MEM_EQ(ptr_a, ptr_b) = takes (0) returns (0) {\n    // takes:             []\n    <ptr_b> mload      // [b]\n    <ptr_a> mload      // [a, b]\n    eq                 // [a == b]\n    ASSERT()           // []\n}\n\n// Assert that two memory offsets do not contain equal words\n#define macro ASSERT_MEM_NOT_EQ(ptr_a, ptr_b) = takes (0) returns (0) {\n    // takes:             []\n    <ptr_b> mload      // [b]\n    <ptr_a> mload      // [a, b]\n    eq iszero          // [a != b]\n    ASSERT()           // []\n}\n\n// Assert that two storage slots contain equal words\n#define macro ASSERT_STORAGE_EQ(slot_a, slot_b) = takes (0) returns (0) {\n    // takes:             []\n    <slot_b> sload     // [b]\n    <slot_a> sload     // [a, b]\n    eq                 // [a == b]\n    ASSERT()           // []\n}\n\n// Assert that two storage slots do not contain equal words\n#define macro ASSERT_STORAGE_NOT_EQ(slot_a, slot_b) = takes (0) returns (0) {\n    // takes:             []\n    <slot_b> sload     // [b]\n    <slot_a> sload     // [a, b]\n    eq iszero          // [a != b]\n    ASSERT()           // []\n}\n\n/* Bubbles up revert data if call failed. Call directly after `call`, `staticcall`, `delegatecall`. */\n#define macro BUBBLE_UP_IF_FAILED() = takes (1) returns (0) {\n    // takes:       // [call_succeeded]\n    call_succeeded  // [call_succeeded_jumpdest, call_succeeded]\n    jumpi           // []\n    returndatasize  // [returndatasize]\n    0x00            // [memory_offset, returndatasize]\n    returndatasize  // [returndatasize, memory_offset, returndatasize]\n    dup2            // [returndata_offset, returndatasize, memory_offset, returndatasize]\n    dup3            // [memory_offset, returndata_offset, returndatasize, memory_offset, returndatasize]\n    returndatacopy  // [memory_offset, returndatasize]\n    revert          // []\n    call_succeeded:\n}\n",
+        "access": null,
+        "dependencies": []
+      }
+    ]
+  },
+  "bytecode": "61018380600a3d393df360003560e01c806318160ddd1461002c57806370a08231146100795780638980f11f146100d75760006000fd5b6000600b341561006b577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260806000fd5b505060005460005260206000f35b6000600b34156100b8577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260806000fd5b5050600435600160005260006020015260406000205460005260206000f35b6000600b3415610116577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260806000fd5b505033600254146101275760006000fd5b600060006020600060006004356024356000525af16101465760006000fd5b6024356004357f8c1256b8896378cd5044f80c202f9772b9d77dc85c8a6eb51967210b09bfaa288060005260206000a3600160005260206000f35b00",
+  "runtime": "60003560e01c806318160ddd1461002c57806370a08231146100795780638980f11f146100d75760006000fd5b6000600b341561006b577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260806000fd5b505060005460005260206000f35b6000600b34156100b8577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260806000fd5b5050600435600160005260006020015260406000205460005260206000f35b6000600b3415610116577f08c379a000000000000000000000000000000000000000000000000000000000600052602060045260245260445260806000fd5b505033600254146101275760006000fd5b600060006020600060006004356024356000525af16101465760006000fd5b6024356004357f8c1256b8896378cd5044f80c202f9772b9d77dc85c8a6eb51967210b09bfaa288060005260206000a3600160005260206000f35b00",
+  "abi": {
+    "constructor": null,
+    "functions": {
+      "DOMAIN_SEPARATOR": {
+        "name": "DOMAIN_SEPARATOR",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "FixedBytes": 32
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "allowance": {
+        "name": "allowance",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "approve": {
+        "name": "approve",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "balanceOf": {
+        "name": "balanceOf",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "decimals": {
+        "name": "decimals",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "earned": {
+        "name": "earned",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "exit": {
+        "name": "exit",
+        "inputs": [],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "getReward": {
+        "name": "getReward",
+        "inputs": [],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "getRewardForDuration": {
+        "name": "getRewardForDuration",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "lastTimeRewardApplicable": {
+        "name": "lastTimeRewardApplicable",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "name": {
+        "name": "name",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "kind": "String",
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "nonces": {
+        "name": "nonces",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "notifyRewardAmount": {
+        "name": "notifyRewardAmount",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "owner": {
+        "name": "owner",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "permit": {
+        "name": "permit",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 8
+            },
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "FixedBytes": 32
+            },
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "FixedBytes": 32
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "recoverERC20": {
+        "name": "recoverERC20",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "rewardPerToken": {
+        "name": "rewardPerToken",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "safeAdd": {
+        "name": "safeAdd",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "Pure"
+      },
+      "safeDiv": {
+        "name": "safeDiv",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "Pure"
+      },
+      "safeMod": {
+        "name": "safeMod",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "Pure"
+      },
+      "safeMul": {
+        "name": "safeMul",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "Pure"
+      },
+      "safeSub": {
+        "name": "safeSub",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "Pure"
+      },
+      "setOwner": {
+        "name": "setOwner",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "setRewardsDuration": {
+        "name": "setRewardsDuration",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "stake": {
+        "name": "stake",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "symbol": {
+        "name": "symbol",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "kind": "String",
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "totalSupply": {
+        "name": "totalSupply",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "constant": false,
+        "state_mutability": "View"
+      },
+      "transfer": {
+        "name": "transfer",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "transferFrom": {
+        "name": "transferFrom",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": "Address",
+            "internal_type": null
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      },
+      "withdraw": {
+        "name": "withdraw",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ],
+        "outputs": [],
+        "constant": false,
+        "state_mutability": "NonPayable"
+      }
+    },
+    "events": {
+      "Approval": {
+        "name": "Approval",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "indexed": true
+          },
+          {
+            "name": "",
+            "kind": "Address",
+            "indexed": true
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "indexed": false
+          }
+        ],
+        "anonymous": false
+      },
+      "OwnerUpdated": {
+        "name": "OwnerUpdated",
+        "inputs": [
+          {
+            "name": "user",
+            "kind": "Address",
+            "indexed": true
+          },
+          {
+            "name": "newOwner",
+            "kind": "Address",
+            "indexed": true
+          }
+        ],
+        "anonymous": false
+      },
+      "Recovered": {
+        "name": "Recovered",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "indexed": false
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "indexed": false
+          }
+        ],
+        "anonymous": false
+      },
+      "RewardAdded": {
+        "name": "RewardAdded",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "indexed": false
+          }
+        ],
+        "anonymous": false
+      },
+      "RewardPaid": {
+        "name": "RewardPaid",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "indexed": true
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "indexed": false
+          }
+        ],
+        "anonymous": false
+      },
+      "RewardsDurationUpdated": {
+        "name": "RewardsDurationUpdated",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "indexed": false
+          }
+        ],
+        "anonymous": false
+      },
+      "Staked": {
+        "name": "Staked",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "indexed": true
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "indexed": false
+          }
+        ],
+        "anonymous": false
+      },
+      "Transfer": {
+        "name": "Transfer",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "indexed": false
+          },
+          {
+            "name": "",
+            "kind": "Address",
+            "indexed": false
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "indexed": false
+          }
+        ],
+        "anonymous": false
+      },
+      "Withdrawn": {
+        "name": "Withdrawn",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "Address",
+            "indexed": true
+          },
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "indexed": false
+          }
+        ],
+        "anonymous": false
+      }
+    },
+    "errors": {
+      "Error": {
+        "name": "Error",
+        "inputs": [
+          {
+            "name": "",
+            "kind": "String",
+            "internal_type": null
+          }
+        ]
+      },
+      "Panic": {
+        "name": "Panic",
+        "inputs": [
+          {
+            "name": "",
+            "kind": {
+              "Uint": 256
+            },
+            "internal_type": null
+          }
+        ]
+      }
+    },
+    "receive": false,
+    "fallback": false
+  }
+}

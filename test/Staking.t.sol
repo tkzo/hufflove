@@ -21,6 +21,6 @@ contract StakingTest is Test {
     /// @dev Ensure that you can set and get the value.
     function testBalanceOf() public {
         uint256 balance = staking.balanceOf(address(this));
-        console.log("Balance:", balance);
+        assertEq(balance, 0);
     }
 }

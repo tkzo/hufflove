@@ -7,13 +7,13 @@
 /// @notice Inspired by HuffMate (https://github.com/pentagonxyz/huffmate)
 
 // Imports
-#include "huffmate/utils/Errors.huff"
 #include "huffmate/auth/NonPayable.huff"
+#include "huffmate/auth/Owned.huff"
 #include "huffmate/data-structures/Hashmap.huff"
 #include "huffmate/math/SafeMath.huff"
-#include "huffmate/utils/ReentrancyGuard.huff"
-#include "huffmate/auth/Owned.huff"
 #include "huffmate/tokens/ERC20.huff"
+#include "huffmate/utils/Errors.huff"
+// #include "huffmate/utils/ReentrancyGuard.huff"
 
 // Events
 #define event RewardAdded(uint256)
@@ -80,9 +80,22 @@
     0x20 0x00 return                                    // []
 }
 
-#define macro STAKE() = takes (0) returns (0) {}
-#define macro WITHDRAW() = takes (0) returns (0) {}
-#define macro GET_REWARD() = takes (0) returns (0) {}
+#define macro LAST_TIME_REWARD_APPLICABLE() = takes (0) returns (0) {
+    timestamp                       // [now]
+    [PERIOD_FINISH_SLOT] sload      // [now, periodFinish]
+    dup2 dup2                       // [now, periodFinish, now, periodFinish]
+    lt                              // [now < periodFinish, now, periodFinish]
+
+    periodFinishJump jumpi          // [now, periodFinish]
+    0x00 mstore                     // [periodFinish]
+    pop                             // []
+    0x20 0x00 return                // []
+
+    periodFinishJump:               // [now, periodFinish]
+    pop                             // [periodFinish]
+    0x00 mstore                     // []
+    0x20 0x00 return                // []
+}
 
 /// @notice Recover ERC-20
 /// @notice Non-Payable function that transfers the given token in given amount to the owner.
@@ -115,28 +128,24 @@
     0x20 0x00 return            // []
 }
 
-#define macro GET_REWARD() = takes (0) returns (0) {
-
-}
-
 // Function Dispatching
-#define macro STAKING_MAIN() = takes (0) returns (0) {
+#define macro MAIN() = takes (0) returns (0) {
 
     0x00 calldataload 0xE0 shr
 
     dup1 __FUNC_SIG(totalSupply)                eq totalSupplyJump                  jumpi
     dup1 __FUNC_SIG(balanceOf)                  eq balanceOfJump                    jumpi
-    dup1 __FUNC_SIG(lastTimeRewardApplicable)   eq lastTimeRewardApplicableJump     jumpi
-    dup1 __FUNC_SIG(rewardPerToken)             eq rewardPerTokenJump               jumpi
-    dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi
-    dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
-    dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
-    dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
-    dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
-    dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
-    dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
+    // dup1 __FUNC_SIG(lastTimeRewardApplicable)   eq lastTimeRewardApplicableJump     jumpi
+    // dup1 __FUNC_SIG(rewardPerToken)             eq rewardPerTokenJump               jumpi
+    // dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi
+    // dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
+    // dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
+    // dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
+    // dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
+    // dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
+    // dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
     dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
-    dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
+    // dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
 
     // Revert if no functions match
     0x00 0x00 revert
@@ -145,36 +154,36 @@
         TOTAL_SUPPLY()
     balanceOfJump:
         BALANCE_OF()
-    lastTimeRewardApplicableJump:
-        LAST_TIME_REWARD_APPLICABLE()
-    rewardPerTokenJump:
-        REWARD_PER_TOKEN()
-    earnedJump:
-        EARNED()
-    getRewardForDurationJump:
-        GET_REWARD_FOR_DURATION()
-    stakeJump:
-        LOCK()
-        STAKE()
-        finalize jump
-    withdrawJump:
-        LOCK()
-        WITHDRAW()
-        finalize jump
-    getRewardJump:
-        LOCK()
-        GET_REWARD()
-        finalize jump
-    exitJump:
-        EXIT()
-    notifyRewardAmountJump:
-        NOTIFY_REWARD_AMOUNT()
+    // lastTimeRewardApplicableJump:
+    //     LAST_TIME_REWARD_APPLICABLE()
+    // rewardPerTokenJump:
+    //     REWARD_PER_TOKEN()
+    // earnedJump:
+    //     EARNED()
+    // getRewardForDurationJump:
+    //     GET_REWARD_FOR_DURATION()
+    // stakeJump:
+    //     LOCK()
+    //     STAKE()
+    //     finalize jump
+    // withdrawJump:
+    //     LOCK()
+    //     WITHDRAW()
+    //     finalize jump
+    // getRewardJump:
+    //     LOCK()
+    //     GET_REWARD()
+    //     finalize jump
+    // exitJump:
+    //     EXIT()
+    // notifyRewardAmountJump:
+    //     NOTIFY_REWARD_AMOUNT()
     recoverERC20Jump:
         RECOVER_ERC20()
-    setRewardsDurationJump:
-        SET_REWARDS_DURATION()
+    // setRewardsDurationJump:
+    //     SET_REWARDS_DURATION()
     
     finalize:
-        UNLOCK()
+        // UNLOCK()
         stop
 }
