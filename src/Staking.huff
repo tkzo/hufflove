@@ -53,6 +53,7 @@
 
 // Utility Constants
 #define constant UINT_256_MAX = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+#define constant DECIMAL = 0xDE0B6B3A7640000
 #define constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000
 
 /// @notice Constructor
@@ -80,6 +81,8 @@
     0x20 0x00 return                                    // []
 }
 
+/// @notice Last Time Reward Applicable
+/// @notice Returns the last time reward was applicable
 #define macro LAST_TIME_REWARD_APPLICABLE() = takes (0) returns (0) {
     timestamp                       // [now]
     [PERIOD_FINISH_SLOT] sload      // [now, periodFinish]
@@ -95,6 +98,34 @@
     pop                             // [periodFinish]
     0x00 mstore                     // []
     0x20 0x00 return                // []
+}
+
+/// @notice Reward Per Token
+/// @notice Returns the reward per token
+#define macro REWARD_PER_TOKEN() = takes (0) returns (0) {
+    NON_PAYABLE()                                   // []
+    [REWARD_PER_TOKEN_STORED_SLOT] sload            // [rewardPerTokenStored]
+    [TOTAL_SUPPLY_SLOT] sload                       // [totalSupply, rewardPerTokenStored]
+    dup1                                            // [totalSupply, totalSupply, rewardPerTokenStored]
+    0x00 eq                                         // [totalSupply == 0, totalSupply, rewardPerTokenStored]
+    
+    totalSupplyJump jumpi                           // [totalSupply, rewardPerTokenStored]
+
+    LAST_TIME_REWARD_APPLICABLE()                   // [lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
+    [LAST_UPDATE_TIME_SLOT] sload                   // [lastUpdateTime, lastTimeRewardApplicable, totalSupply, rewardPerTokenStored ]
+    SAFE_SUB()                                      // [lastUpdateTime - lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
+    [REWARD_RATE_SLOT] sload                        // [rewardRate, lastUpdateTime - lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
+    SAFE_MUL()                                      // [rewardRate * (lastUpdateTime - lastTimeRewardApplicable), totalSupply, rewardPerTokenStored]
+    [DECIMAL] SAFE_MUL()                            // [rewardRate * (lastUpdateTime - lastTimeRewardApplicable) * DECIMAL, totalSupply, rewardPerTokenStored]
+    SAFE_DIV()                                      // [rewardRate * (lastUpdateTime - lastTimeRewardApplicable) * DECIMAL / totalSupply, rewardPerTokenStored]
+    SAFE_ADD()                                      // [rewardPerTokenStored + rewardRate * (lastUpdateTime - lastTimeRewardApplicable) * DECIMAL / totalSupply]
+
+    0x00 mstore                                     // []
+    0x20 0x00 return                                // []
+
+    totalSupplyJump:                                // [totalSupply, rewardPerTokenStored]
+    pop 0x00 mstore                                 // []
+    0x20 0x00 return                                // []
 }
 
 /// @notice Recover ERC-20
