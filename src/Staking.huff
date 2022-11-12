@@ -65,6 +65,10 @@
 #define constant AMOUNT_ZERO_LENGTH = 0x16
 #define constant TRANSFER_ERROR = 0x5452414E53464552204641494C45440000000000000000000000000000000000
 #define constant TRANSFER_LENGTH = 0x1e
+#define constant REWARD_ERROR = 0x4E4F205245574152445300000000000000000000000000000000000000000000
+#define constant REWARD_LENGTH = 0x14
+
+//4E4F2052455741524453
 
 /// @notice Constructor
 /// @notice Sets the initial addresses
@@ -190,9 +194,9 @@
     caller                                          // [caller]
     UPDATE_REWARD_INNER()                           // []
     0x04 calldataload                               // [amount]
-    0x00 eq                                         // [amount == 0]
-    dup1                                            // [amount == 0, amount == 0]
-    amountErrorJump jumpi                           // [amount == 0]
+    dup1                                            // [amount, amount]
+    0x00 eq                                         // [amount == 0, amount]
+    amountErrorJump jumpi                           // [amount]
 
     [TOTAL_SUPPLY_SLOT] sload                       // [totalSupply, amount]
     0x04 calldataload                               // [amount, totalSupply, amount]
@@ -203,35 +207,38 @@
     dup1                                            // [caller, caller, amount]
     [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)    // [balance, caller, amount]
     dup3                                            // [amount, balance, caller, amount]
-    SAFE_ADD()                                      // [balance + amount, caller, amount]
-    swap1                                           // [caller, balance + amount, amount]
+    SAFE_ADD()                                      // [amount + balance, caller, amount]
+    swap1                                           // [caller, amount + balance, amount]
     [BALANCES_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)   // [amount]
 
-    __FUNC_SIG(transferFrom)                        // [sig]
-    0x00 mstore                                     // []
-    caller 0x20 mstore                              // []
-    address 0x40 mstore                             // []
-    0x04 calldataload 0x60 mstore                   // []
-    0x00 0x00 0x64 0x1c 0x00                        // [value,argsOffset, argsSize, retOffset, retSize]
-    [STAKING_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize] 
-    gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize]
-    call                                            // [success]
-    dup1                                            // [success, success]
+    __FUNC_SIG(transferFrom)                        // [sig, amount]
+    0x00 mstore                                     // [amount]
+    caller 0x20 mstore                              // [amount]
+    address 0x40 mstore                             // [amount]
+    dup1                                            // [amount, amount]
+    0x60 mstore                                     // [amount]
+    0x00 0x00 0x64 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, amount]
+    [STAKING_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize, amount] 
+    gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, amount]
+    call                                            // [success, amount]
+    dup1                                            // [success, success, amount]
 
-    emitStakedJump jumpi                            // [success]
+    emitStakedJump jumpi                            // [success, amount]
+
     [TRANSFER_LENGTH] sload                         // [length, success]
     [TRANSFER_ERROR] sload                          // [error, length, success]
     swap2                                           // [success, length, error]
     REQUIRE()
 
-    amountErrorJump:                                // [amount == 0]
+    amountErrorJump:                                // [amount]
+    0x00 eq                                         // [amount == 0]
     [AMOUNT_ZERO_LENGTH] sload                      // [AMOUNT_ZERO_LENGTH, amount == 0]
     [AMOUNT_ZERO_ERROR] sload                       // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, amount == 0]
     swap2                                           // [amount == 0, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR]
     REQUIRE()                                       // []
 
-    emitStakedJump:
-    0x04 calldataload                               // [amount]
+    emitStakedJump:                                 // [success, amount]
+    pop                                             // [amount]
     caller                                          // [address, amount]
     __EVENT_HASH(Staked)                            // [sig, address, amount]
     dup1 0x00 mstore                                // [sig, address, amount]
@@ -240,6 +247,127 @@
 
     0x01 0x00 mstore                                // []
     0x20 0x00 return                                // []
+}
+
+#define macro WITHDRAW() = takes (0) returns (0) {
+    0x04 calldataload                               // [amount]
+    WITHDRAW_INNER()                                // []
+    0x00 mstore                                     // []
+    0x20 0x00 return                                // []
+}
+
+#define macro WITHDRAW_INNER() = takes (1) returns (0) {
+    NON_PAYABLE()                                   // [amount]
+    caller                                          // [caller,amount]
+    UPDATE_REWARD_INNER()                           // [amount]
+    dup1                                            // [amount, amount]
+    0x00 eq                                         // [amount == 0, amount]
+    amountErrorJump jumpi                           // [amount]
+
+    caller                                          // [caller, amount]
+    dup1                                            // [caller, caller, amount]
+    [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)    // [balance, caller, amount]
+    dup3                                            // [amount, balance, caller, amount]
+    SAFE_SUB()                                      // [balance - amount, caller, amount]
+    swap1                                           // [caller, balance - amount, amount]
+    [BALANCES_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)   // [amount]
+
+    [TOTAL_SUPPLY_SLOT] sload                       // [totalSupply, amount]
+    SAFE_SUB()                                      // [totalSupply - amount, amount]
+    [TOTAL_SUPPLY_SLOT] sstore                      // [amount]
+
+    __FUNC_SIG(transferFrom)                        // [sig, amount]
+    0x00 mstore                                     // [amount]
+    address 0x20 mstore                             // [amount]
+    caller 0x40 mstore                              // [amount]
+    dup1 0x60 mstore                                // [amount]
+    0x60 mstore                                     // [amount]
+    0x00 0x00 0x64 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, amount]
+    [STAKING_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize, amount] 
+    gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, amount]
+    call                                            // [success, amount]
+    dup1                                            // [success, success, amount]
+
+    emitWithdrawnJump jumpi                         // [success, amount]
+
+    [TRANSFER_LENGTH] sload                         // [length, success, amount]
+    [TRANSFER_ERROR] sload                          // [error, length, success, amount]
+    swap2                                           // [success, length, error, amount]
+    REQUIRE()
+
+    amountErrorJump:                                // [amount]
+    0x00 eq                                         // [amount == 0]
+    [AMOUNT_ZERO_LENGTH] sload                      // [AMOUNT_ZERO_LENGTH, amount == 0]
+    [AMOUNT_ZERO_ERROR] sload                       // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, amount == 0]
+    swap2                                           // [amount == 0, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR]
+    REQUIRE() 
+
+    emitWithdrawnJump:                              // [success, amount]
+    pop                                             // [amount]
+    caller                                          // [address, amount]
+    __EVENT_HASH(Withdrawn)                         // [sig, address, amount]
+    dup1 0x00 mstore                                // [sig, address, amount]
+    0x20 0x00                                       // [0, 32, sig, address, amount]
+    log3                                            // []
+}
+
+#define macro GET_REWARD() = takes (0) returns (0) {
+    NON_PAYABLE()                                   // []
+    LOCK()                                          // []
+    caller                                          // [caller]
+    dup1                                            // [caller, caller]
+    UPDATE_REWARD_INNER()                           // [caller]
+    [REWARDS_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)     // [reward]
+    dup1                                            // [reward, reward]
+    iszero                                          // [reward == 0, reward]
+
+    hasRewardsJump jumpi                            // [reward]
+
+    iszero                                          // [reward == 0]
+    [REWARD_LENGTH] sload                           // [length, reward == 0]
+    [REWARD_ERROR] sload                            // [error, length, reward == 0]
+    swap2                                           // [reward == 0, length, error]
+    REQUIRE()
+
+    hasRewardsJump:                                 // [reward]
+    0x00 caller                                     // [caller, 0x00, reward]
+    [REWARDS_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)    // [reward]
+
+    __FUNC_SIG(transfer)                            // [sig, reward]
+    0x00 mstore                                     // [reward]
+    caller 0x20 mstore                              // [reward]
+    dup1 0x40 mstore                                // [reward, reward]
+    0x40 mstore                                     // []
+    0x00 0x00 0x44 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, reward]
+    [REWARDS_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize, reward] 
+    gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, reward]
+    call                                            // [success, reward]
+    dup1                                            // [success, success, reward]
+
+    emitRewardPaidJump jumpi                        // [success, reward]
+
+    [TRANSFER_LENGTH] sload                         // [length, success, reward]
+    [TRANSFER_ERROR] sload                          // [error, length, success, reward]
+    swap2                                           // [success, length, error, reward]
+    REQUIRE()
+
+    emitRewardPaidJump:                             // [success, reward]
+    pop                                             // [reward]
+    caller                                          // [address, amount]
+    __EVENT_HASH(RewardPaid)                        // [sig, address, amount]
+    dup1 0x00 mstore                                // [sig, address, amount]
+    0x20 0x00                                       // [0, 32, sig, address, amount]
+    log3                                            // []
+
+    0x01 0x00 mstore                                // []
+    0x20 0x00 return                                // []
+}
+
+#define macro EXIT() = takes (0) returns (0) {
+    caller                                          // [caller]
+    [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)    // [balance]
+    WITHDRAW_INNER()                                // []
+    GET_REWARD()                                    // []
 }
 
 #define macro UPDATE_REWARD() = takes (0) returns (0) {
