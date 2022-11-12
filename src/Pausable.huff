@@ -1,0 +1,93 @@
+/// @title  Pausable
+/// @notice SPDX-License-Identifier: MIT
+/// @author takez0_o <https://github.com/takez0o>
+/// @author 
+/// @notice Modern and gas efficient implementation of Pausable contract.
+/// @notice Adapted from OpenZeppelin (https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/Pausable.sol)
+/// @notice Inspired by HuffMate (https://github.com/pentagonxyz/huffmate)
+
+#include "huffmate/utils/Errors.huff"
+
+#define constant PAUSED_ERROR = 0x5041555345440000000000000000000000000000000000000000000000000000
+#define constant PAUSED_LENGTH = 0x0c
+
+#define constant NOT_PAUSED_ERROR = 0x4E4F542050415553454400000000000000000000000000000000000000000000
+#define constant NOT_PAUSED_LENGTH = 0x14
+
+#define event Paused(address account)
+#define event Unpaused(address account)
+
+#define constant _PAUSED = FREE_STORAGE_POINTER()
+
+#define macro PAUSABLE_CONSTRUCTOR() = takes (0) returns (0) {
+    0x00 [PAUSED] sstore
+}
+
+#define macro WHEN_PAUSED() = takes (0) returns (0) {
+    REQUIRE_PAUSED()
+}
+
+#define macro WHEN_NOT_PAUSED() = takes (0) returns (0) {
+    REQUIRE_NOT_PAUSED()
+}
+
+#define macro REQUIRE_PAUSED() = takes (0) returns (0) {
+    0x01 [_PAUSED] sload eq      // [PAUSED]
+    dup1                        // [PAUSED, PAUSED]
+
+    pausedJump jumpi            // [PAUSED]
+
+    [NOT_PAUSED_LENGTH] sload   // [NOT_PAUSED_LENGTH, PAUSED]
+    [NOT_PAUSED_ERROR] sload    // [NOT_PAUSED_ERROR, NOT_PAUSED_LENGTH, PAUSED]
+    swap2                       // [PAUSED, NOT_PAUSED_LENGTH, NOT_PAUSED_ERROR]
+    REQUIRE()                   // []
+
+    pausedJump:
+}
+
+#define macro REQUIRE_NOT_PAUSED() = takes (0) returns (0) {
+    0x00 [_PAUSED] sload eq      // [PAUSED]
+    dup1                        // [PAUSED, PAUSED]
+
+    notPausedJump jumpi         // [PAUSED]
+
+    [PAUSED_LENGTH] sload       // [PAUSABLE_LENGTH, PAUSED]
+    [PAUSED_ERROR] sload        // [PAUSABLE_ERROR, PAUSABLE_LENGTH, PAUSED]
+    swap2                       // [PAUSED, PAUSABLE_LENGTH, PAUSABLE_ERROR]
+    REQUIRE()                   // []
+
+    notPausedJump:
+}
+
+#define macro PAUSED() = takes (0) returns (0) {
+    [_PAUSED] sload             // [PAUSED]
+    0x00 mstore                 // []
+    0x20 0x00 return            // []
+}
+
+#define macro PAUSE() = takes (0) returns (0) {
+    0x01 [_PAUSED] sstore       // []
+
+    caller                      // [CALLER]
+    __EVENT_HASH(Paused)        // [PAUSED_HASH, CALLER]
+    dup1 0x00 mstore            // [PAUSED_HASH, CALLER]
+    0x20 0x00                   // [0x00, 0x20, PAUSED_HASH, CALLER]
+    log2                        // []
+
+    0x01 0x20 mstore            // []
+    0x20 0x20 return            // []
+}
+
+#define macro UNPAUSE() = takes (0) returns (0) {
+    0x00 [_PAUSED] sstore       // []
+
+    caller                      // [CALLER]
+    __EVENT_HASH(Unpaused)      // [UNPAUSED_HASH, CALLER]
+    dup1 0x00 mstore            // [UNPAUSED_HASH, CALLER]
+    0x20 0x00                   // [0x00, 0x20, UNPAUSED_HASH, CALLER]
+    log2                        // []
+
+    0x01 0x20 mstore            // []
+    0x20 0x20 return            // []
+}
+

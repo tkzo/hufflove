@@ -5,3 +5,4 @@ remappings = [
     "foundry-huff=lib/foundry-huff/src/",
     "huffmate=lib/huffmate/src/",
 ]
+gas_reports = ["Staking", "Pausable"]

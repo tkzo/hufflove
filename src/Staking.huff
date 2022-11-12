@@ -1,4 +1,4 @@
-/// @title Staking
+/// @title  Staking
 /// @notice SPDX-License-Identifier: MIT
 /// @author takez0_o <https://github.com/takez0o>
 /// @author 
@@ -13,7 +13,7 @@
 #include "huffmate/math/SafeMath.huff"
 #include "huffmate/tokens/ERC20.huff"
 #include "huffmate/utils/Errors.huff"
-// #include "huffmate/utils/ReentrancyGuard.huff"
+#include "huffmate/utils/ReentrancyGuard.huff"
 
 // Events
 #define event RewardAdded(uint256)
@@ -100,6 +100,7 @@
     0x20 0x00 return                // []
 }
 
+
 /// @notice Reward Per Token
 /// @notice Returns the reward per token
 #define macro REWARD_PER_TOKEN() = takes (0) returns (0) {
@@ -128,9 +129,87 @@
     0x20 0x00 return                                // []
 }
 
+/// @notice Earned
+/// @notice Returns the amount of rewards earned by the given address
+/// @param account The address of the account
+#define macro EARNED() = takes (0) returns (1) {
+    0x04 calldataload                               // [account]
+    EARNED_INNER()                                  // [earned]
+    0x00 mstore                                     // []
+    0x20 0x00 return                                // []
+}
+
+/// @notice Earned Inner
+/// @notice Returns the amount of rewards earned by the given address
+#define macro EARNED_INNER() = takes (1) returns (1) {
+    // input stack: [account]
+    // output stack: [earned]
+    NON_PAYABLE()                                                   // []
+    0x04 calldataload                                               // [account]
+    dup1                                                            // [account, account] 
+    [USER_REWARD_PER_TOKEN_PAID_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)  // [userRewardPerTokenPaid, account]
+    REWARD_PER_TOKEN()                                              // [rewardPerToken, userRewardPerTokenPaid, account]
+    SAFE_SUB()                                                      // [rewardPerToken - userRewardPerTokenPaid, account]
+    dup2                                                            // [account, rewardPerToken - userRewardPerTokenPaid, account]
+    [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)                    // [balance, rewardPerToken - userRewardPerTokenPaid, account, account]
+    SAFE_MUL()                                                      // [balance * (rewardPerToken - userRewardPerTokenPaid), account]
+    [DECIMAL] SAFE_MUL()                                            // [balance * (rewardPerToken - userRewardPerTokenPaid) * DECIMAL, account]
+    dup2                                                            // [account, balance * (rewardPerToken - userRewardPerTokenPaid) * DECIMAL, account]
+    [REWARDS_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)                     // [rewards, balance * (rewardPerToken - userRewardPerTokenPaid) * DECIMAL, account]
+    SAFE_ADD()                                                      // [rewards + balance * (rewardPerToken - userRewardPerTokenPaid) * DECIMAL, account]
+    0x00 mstore                                                     // [account]
+    pop                                                             // []
+    0x20 0x00 return                                                // []
+}
+
+/// @notice Get Reward For Duration
+/// @notice Returns the reward for the given duration
+#define macro GET_REWARD_FOR_DURATION() = takes (0) returns (0) {
+    NON_PAYABLE()                                   // []
+    [REWARD_RATE_SLOT] sload                        // [rewardRate]
+    [DURATION_SLOT] sload                           // [duration, rewardRate]
+    SAFE_MUL()                                      // [duration * rewardRate]
+    0x00 mstore                                     // []
+    0x20 0x00 return                                // []
+}
+
+/// @notice Stake
+/// @notice Stakes the given amount of tokens
+#define macro STAKE() = takes (0) returns (0) {
+    NON_PAYABLE()               // []
+    caller                      // [caller]
+    UPDATE_REWARD_INNER()       // []
+
+
+}
+
+#define macro UPDATE_REWARD() = takes (0) returns (0) {
+    0x04 calldataload          // [account]
+    UPDATE_REWARD_INNER()      // []
+}
+
+#define macro UPDATE_REWARD_INNER() = takes (1) returns (0) {
+    // input stack: [account]
+    // output stack: []
+    [ZERO_ADDRESS] sload                                            // [zeroAddress, caller]
+    dup2 eq                                                         // [zeroAddress == caller, caller]
+
+    zeroAddressJump jumpi                                           // [caller]
+
+    dup1                                                            // [caller, caller]
+    EARNED_INNER()                                                  // [earned, caller]
+    dup2                                                            // [caller, earned, caller]
+    [REWARDS_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)                    // [caller]
+    [REWARD_PER_TOKEN_STORED_SLOT] sload                            // [rewardPerTokenStored, caller]
+    [USER_REWARD_PER_TOKEN_PAID_SLOT] STORE_ELEMENT_FROM_KEYS(0x00) // []
+
+    zeroAddressJump:                                                // [caller]
+    pop                                                             // []
+}
+
 /// @notice Recover ERC-20
 /// @notice Non-Payable function that transfers the given token in given amount to the owner.
-#define macro RECOVER_ERC20() = takes (0) returns (1) {
+#define macro RECOVER_ERC20() = takes (0) returns (0) {
     NON_PAYABLE()
     IS_OWNER()
     
@@ -166,10 +245,10 @@
 
     dup1 __FUNC_SIG(totalSupply)                eq totalSupplyJump                  jumpi
     dup1 __FUNC_SIG(balanceOf)                  eq balanceOfJump                    jumpi
-    // dup1 __FUNC_SIG(lastTimeRewardApplicable)   eq lastTimeRewardApplicableJump     jumpi
-    // dup1 __FUNC_SIG(rewardPerToken)             eq rewardPerTokenJump               jumpi
-    // dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi
-    // dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
+    dup1 __FUNC_SIG(lastTimeRewardApplicable)   eq lastTimeRewardApplicableJump     jumpi
+    dup1 __FUNC_SIG(rewardPerToken)             eq rewardPerTokenJump               jumpi
+    dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi
+    dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
     // dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
     // dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
     // dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
@@ -185,18 +264,18 @@
         TOTAL_SUPPLY()
     balanceOfJump:
         BALANCE_OF()
-    // lastTimeRewardApplicableJump:
-    //     LAST_TIME_REWARD_APPLICABLE()
-    // rewardPerTokenJump:
-    //     REWARD_PER_TOKEN()
-    // earnedJump:
-    //     EARNED()
-    // getRewardForDurationJump:
-    //     GET_REWARD_FOR_DURATION()
-    // stakeJump:
-    //     LOCK()
-    //     STAKE()
-    //     finalize jump
+    lastTimeRewardApplicableJump:
+        LAST_TIME_REWARD_APPLICABLE()
+    rewardPerTokenJump:
+        REWARD_PER_TOKEN()
+    earnedJump:
+        EARNED()
+    getRewardForDurationJump:
+        GET_REWARD_FOR_DURATION()
+    stakeJump:
+        LOCK()
+        STAKE()
+        finalize jump
     // withdrawJump:
     //     LOCK()
     //     WITHDRAW()
@@ -215,6 +294,6 @@
     //     SET_REWARDS_DURATION()
     
     finalize:
-        // UNLOCK()
+        UNLOCK()
         stop
 }
