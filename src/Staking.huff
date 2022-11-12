@@ -13,6 +13,7 @@
 #include "huffmate/tokens/ERC20.huff"
 #include "huffmate/utils/Errors.huff"
 #include "huffmate/utils/ReentrancyGuard.huff"
+#include "huffmate/utils/TSOwnable.huff"
 
 // Events
 #define event RewardAdded(uint256)
@@ -74,7 +75,12 @@
 /// @notice Constructor
 /// @notice Sets the initial addresses
 #define macro STAKING_CONSTRUCTOR() = takes (0) returns (0) {
-    // TODO: Set initial addresses
+    caller                          // [caller]
+    TSOWNABLE_CONSTRUCTOR()         // []
+    0x04 calldataload               // [rewardsToken]
+    [REWARDS_TOKEN_SLOT] sstore     // []
+    0x24 calldataload               // [rewardsToken, stakingToken]
+    [STAKING_TOKEN_SLOT] sstore     // []
 }
 
 /// ------------------------------------------------------------- /
@@ -404,7 +410,7 @@
 /// @param _rewardsDuration Rewards duration
 #define macro SET_REWARDS_DURATION() = takes (0) returns (0) {
     NON_PAYABLE()                           // []
-    IS_OWNER()                              // []
+    ONLY_OWNER_MODIFIER()                   // []
 
     [PERIOD_FINISH_SLOT] sload              // [periodFinish]
     block.timestamp                         // [timestamp, periodFinish]
@@ -423,8 +429,8 @@
     0x20 0x00                               // [0, 32, sig, duration]
     log2 
 
-    0x01 0x00 mstore                // []
-    0x20 0x00 return                // []
+    0x01 0x00 mstore                        // []
+    0x20 0x00 return                        // []
 }
 
 // TODO: Refactor to remove excess storage + calldata calls
@@ -434,7 +440,7 @@
 /// @param reward Reward amount
 #define macro NOTIFY_REWARD_AMOUNT() = takes (0) returns (0) {
     NON_PAYABLE()                                   // []
-    IS_OWNER()                                      // []
+    ONLY_OWNER_MODIFIER()                                      // []
     0x00 UPDATE_REWARD()                            // []
 
     [PERIOD_FINISH_SLOT] sload                      // [periodFinish]
@@ -502,7 +508,7 @@
 /// @param amount The amount of the token to recover
 #define macro RECOVER_ERC20() = takes (0) returns (0) {
     NON_PAYABLE()               // []
-    IS_OWNER()                  // []
+    ONLY_OWNER_MODIFIER()                  // []
 
     // TODO: Do not allow staking token to be recovered
 
