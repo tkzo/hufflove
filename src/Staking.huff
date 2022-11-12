@@ -71,6 +71,8 @@
 #define constant WRONG_ADDRESS_LENGTH = 0x1a
 #define constant SET_REWARD_ERROR = 0x4E4F2042414C414E434500000000000000000000000000000000000000000000
 #define constant SET_REWARD_LENGTH = 0x1a
+#define constant STAKING_TOKEN_ERROR = 0x57524F4E4720544F4B454E000000000000000000000000000000000000000000
+#define constant STAKING_TOKEN_LENGTH = 0x16
 
 /// @notice Constructor
 /// @notice Sets the initial addresses
@@ -254,9 +256,6 @@
     dup1 0x00 mstore                                // [sig, address, amount]
     0x20 0x00                                       // [0, 32, sig, address, amount]
     log3                                            // []
-
-    0x01 0x00 mstore                                // []
-    0x20 0x00 return                                // []
 }
 
 
@@ -267,8 +266,6 @@
     LOCK()                                          // []
     0x04 calldataload                               // [amount]
     WITHDRAW_INNER()                                // []
-    0x01 0x00 mstore                                // []
-    0x20 0x00 return                                // []
 }
 
 /// @notice Withdraw Inner
@@ -358,9 +355,6 @@
     dup1 0x00 mstore                                // [sig, address, reward]
     0x20 0x00                                       // [0, 32, sig, address, reward]
     log3                                            // []
-
-    0x01 0x00 mstore                                // []
-    0x20 0x00 return                                // []
 }
 
 #define macro EXIT() = takes (0) returns (0) {
@@ -440,7 +434,7 @@
 /// @param reward Reward amount
 #define macro NOTIFY_REWARD_AMOUNT() = takes (0) returns (0) {
     NON_PAYABLE()                                   // []
-    ONLY_OWNER_MODIFIER()                                      // []
+    ONLY_OWNER_MODIFIER()                           // []
     0x00 UPDATE_REWARD()                            // []
 
     [PERIOD_FINISH_SLOT] sload                      // [periodFinish]
@@ -508,15 +502,21 @@
 /// @param amount The amount of the token to recover
 #define macro RECOVER_ERC20() = takes (0) returns (0) {
     NON_PAYABLE()               // []
-    ONLY_OWNER_MODIFIER()                  // []
-
-    // TODO: Do not allow staking token to be recovered
+    ONLY_OWNER_MODIFIER()       // []
+    
+    0x04 calldataload           // [address]
+    [STAKING_TOKEN_SLOT] sload  // [stakingToken, address]
+    eq iszero                   // [condition]
+    [TRANSFER_LENGTH] sload     // [length, condition]
+    [TRANSFER_ERROR] sload      // [error, length, condition]
+    swap2                       // [condition, length, error]
+    REQUIRE()                   // []
 
     __FUNC_SIG(transfer)        // [transfer_sig]
     0x00 mstore                 // []
     caller                      // [caller]
     0x20 mstore                 // []
-    0x04 calldataload           // [amount]
+    0x24 calldataload           // [amount]
     0x40 mstore                 // []
     0x00 0x00 0x44 0x1c         // [argsOffset, argsSize, retOffset, retSize]
     0x00                        // [value, argsOffset, argsSize, retOffset, retSize]
@@ -594,5 +594,6 @@
         SET_REWARDS_DURATION()
     finalize:
         UNLOCK()
-        stop
+        0x01 0x00 mstore
+        0x20 0x00 return
 }
