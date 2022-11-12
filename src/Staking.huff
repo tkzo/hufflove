@@ -38,6 +38,10 @@
 #define function recoverERC20(address,uint256) nonpayable returns ()
 #define function setRewardsDuration(uint256) nonpayable returns ()
 
+// IERC20
+#define function transfer(address,uint256) nonpayable returns ()
+#define function transferFrom(address,address,uint256) nonpayable returns ()
+
 // Storage
 #define constant REWARDS_TOKEN_SLOT = FREE_STORAGE_POINTER()
 #define constant STAKING_TOKEN_SLOT = FREE_STORAGE_POINTER()
@@ -55,6 +59,12 @@
 #define constant UINT_256_MAX = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 #define constant DECIMAL = 0xDE0B6B3A7640000
 #define constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000
+
+// Errors
+#define constant AMOUNT_ZERO_ERROR = 0x5A45524F20414D4F554E54000000000000000000000000000000000000000000
+#define constant AMOUNT_ZERO_LENGTH = 0x16
+#define constant TRANSFER_ERROR = 0x5452414E53464552204641494C45440000000000000000000000000000000000
+#define constant TRANSFER_LENGTH = 0x1e
 
 /// @notice Constructor
 /// @notice Sets the initial addresses
@@ -176,11 +186,60 @@
 /// @notice Stake
 /// @notice Stakes the given amount of tokens
 #define macro STAKE() = takes (0) returns (0) {
-    NON_PAYABLE()               // []
-    caller                      // [caller]
-    UPDATE_REWARD_INNER()       // []
+    NON_PAYABLE()                                   // []
+    caller                                          // [caller]
+    UPDATE_REWARD_INNER()                           // []
+    0x04 calldataload                               // [amount]
+    0x00 eq                                         // [amount == 0]
+    dup1                                            // [amount == 0, amount == 0]
+    amountErrorJump jumpi                           // [amount == 0]
 
+    [TOTAL_SUPPLY_SLOT] sload                       // [totalSupply, amount]
+    0x04 calldataload                               // [amount, totalSupply, amount]
+    SAFE_ADD()                                      // [totalSupply + amount, amount]
+    [TOTAL_SUPPLY_SLOT] sstore                      // [amount]
 
+    caller                                          // [caller, amount]
+    dup1                                            // [caller, caller, amount]
+    [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)    // [balance, caller, amount]
+    dup3                                            // [amount, balance, caller, amount]
+    SAFE_ADD()                                      // [balance + amount, caller, amount]
+    swap1                                           // [caller, balance + amount, amount]
+    [BALANCES_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)   // [amount]
+
+    __FUNC_SIG(transferFrom)                        // [sig]
+    0x00 mstore                                     // []
+    caller 0x20 mstore                              // []
+    address 0x40 mstore                             // []
+    0x04 calldataload 0x60 mstore                   // []
+    0x00 0x00 0x64 0x1c 0x00                        // [value,argsOffset, argsSize, retOffset, retSize]
+    [STAKING_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize] 
+    gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize]
+    call                                            // [success]
+    dup1                                            // [success, success]
+
+    emitStakedJump jumpi                            // [success]
+    [TRANSFER_LENGTH] sload                         // [length, success]
+    [TRANSFER_ERROR] sload                          // [error, length, success]
+    swap2                                           // [success, length, error]
+    REQUIRE()
+
+    amountErrorJump:                                // [amount == 0]
+    [AMOUNT_ZERO_LENGTH] sload                      // [AMOUNT_ZERO_LENGTH, amount == 0]
+    [AMOUNT_ZERO_ERROR] sload                       // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, amount == 0]
+    swap2                                           // [amount == 0, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR]
+    REQUIRE()                                       // []
+
+    emitStakedJump:
+    0x04 calldataload                               // [amount]
+    caller                                          // [address, amount]
+    __EVENT_HASH(Staked)                            // [sig, address, amount]
+    dup1 0x00 mstore                                // [sig, address, amount]
+    0x20 0x00                                       // [0, 32, sig, address, amount]
+    log3                                            // []
+
+    0x01 0x00 mstore                                // []
+    0x20 0x00 return                                // []
 }
 
 #define macro UPDATE_REWARD() = takes (0) returns (0) {
@@ -212,20 +271,27 @@
 #define macro RECOVER_ERC20() = takes (0) returns (0) {
     NON_PAYABLE()
     IS_OWNER()
-    
-    // Setup the stack for the transfer function.
-    0x00 0x00 0x20 0x00         // [argsOffset, argsSize, retOffset, retSize]
-    0x00 0x04 calldataload      // [address, value, argsOffset, argsSize, retOffset, retSize]
-    0x24 calldataload           // [amount, address, value, argsOffset, argsSize, retOffset, retSize]
-    0x00 mstore                 // [address, value, argsOffset, argsSize, retOffset, retSize]
+
+    __FUNC_SIG(transfer)        // [transfer_sig]
+    0x00 mstore                 // []
+    caller                      // [caller]
+    0x20 mstore                 // []
+    0x04 calldataload           // [amount]
+    0x40 mstore                 // []
+    0x00 0x00 0x44 0x1c         // [argsOffset, argsSize, retOffset, retSize]
+    0x00                        // [value, argsOffset, argsSize, retOffset, retSize]
+    0x04 calldataload           // [address, value, argsOffset, argsSize, retOffset, retSize] 
     gas                         // [gas, address, value, argsOffset, argsSize, retOffset, retSize]
     call                        // [success]
+    dup1                        // [success, success]
 
-    emitEventJump jumpi
-    0x00 0x00 revert
+    emitEventJump jumpi         // [success]
+    [TRANSFER_LENGTH] sload     // [length, success]
+    [TRANSFER_ERROR] sload      // [error, length, success]
+    swap2                       // [success, length, error]
+    REQUIRE()
 
     emitEventJump:
-    // Emit the recovered event.
     0x24 calldataload           // [amount]
     0x04 calldataload           // [address, amount]
     __EVENT_HASH(Recovered)     // [sig, address, amount]
@@ -233,7 +299,6 @@
     0x20 0x00                   // [0, 32, sig, address, amount]
     log3                        // []
 
-    // Return "1" to represent a successful transfer.
     0x01 0x00 mstore            // []
     0x20 0x00 return            // []
 }
@@ -273,10 +338,12 @@
     getRewardForDurationJump:
         GET_REWARD_FOR_DURATION()
     stakeJump:
+        WHEN_NOT_PAUSED()
         LOCK()
         STAKE()
         finalize jump
     // withdrawJump:
+    //      WHEN_NOT_PAUSED()
     //     LOCK()
     //     WITHDRAW()
     //     finalize jump
