@@ -398,11 +398,20 @@
     pop                                                             // []
 }
 
+#define macro SET_REWARDS_DURATION() = takes (0) returns (0) {
+    NON_PAYABLE()               // []
+    IS_OWNER()                  // []
+}
+#define macro NOTIFY_REWARD_AMOUNT() = takes (0) returns (0) {
+    NON_PAYABLE()               // []
+    IS_OWNER()                  // []
+}
+
 /// @notice Recover ERC-20
 /// @notice Non-Payable function that transfers the given token in given amount to the owner.
 #define macro RECOVER_ERC20() = takes (0) returns (0) {
-    NON_PAYABLE()
-    IS_OWNER()
+    NON_PAYABLE()               // []
+    IS_OWNER()                  // []
 
     __FUNC_SIG(transfer)        // [transfer_sig]
     0x00 mstore                 // []
@@ -446,13 +455,13 @@
     dup1 __FUNC_SIG(rewardPerToken)             eq rewardPerTokenJump               jumpi
     dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi
     dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
-    // dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
-    // dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
-    // dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
-    // dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
-    // dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
+    dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
+    dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
+    dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
+    dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
+    dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
     dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
-    // dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
+    dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
 
     // Revert if no functions match
     0x00 0x00 revert
@@ -482,12 +491,12 @@
     exitJump:
         EXIT()
         finalize jump
-    // notifyRewardAmountJump:
-    //     NOTIFY_REWARD_AMOUNT()
+    notifyRewardAmountJump:
+        NOTIFY_REWARD_AMOUNT()
     recoverERC20Jump:
         RECOVER_ERC20()
-    // setRewardsDurationJump:
-    //     SET_REWARDS_DURATION()
+    setRewardsDurationJump:
+        SET_REWARDS_DURATION()
     
     finalize:
         UNLOCK()
