@@ -261,7 +261,7 @@
     LOCK()                                          // []
     0x04 calldataload                               // [amount]
     WITHDRAW_INNER()                                // []
-    0x00 mstore                                     // []
+    0x01 0x00 mstore                                // []
     0x20 0x00 return                                // []
 }
 
@@ -324,8 +324,8 @@
     [REWARDS_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)     // [reward]
     
     iszero                                          // [reward == 0]
-    [GET_REWARD_LENGTH] sload                           // [length, reward == 0]
-    [GET_REWARD_ERROR] sload                            // [error, length, reward == 0]
+    [GET_REWARD_LENGTH] sload                       // [length, reward == 0]
+    [GET_REWARD_ERROR] sload                        // [error, length, reward == 0]
     swap2                                           // [reward == 0, length, error]
     REQUIRE()                                       // []
 
@@ -369,8 +369,10 @@
 /// @notice Updates user rewards
 /// @param user The user to update
 #define macro UPDATE_REWARD() = takes (0) returns (0) {
-    0x04 calldataload          // [account]
-    UPDATE_REWARD_INNER()      // []
+    0x04 calldataload           // [account]
+    UPDATE_REWARD_INNER()       // []
+    0x01 0x00 mstore            // []
+    0x20 0x00 return            // []
 }
 
 /// @notice Update Reward Inner
@@ -489,6 +491,9 @@
     dup1 0x00 mstore                                // [sig, reward]
     0x20 0x00                                       // [0, 32, sig, reward]
     log2 
+
+    0x01 0x00 mstore                                // []
+    0x20 0x00 return                                // []
 }
 
 /// @notice Recover ERC-20
