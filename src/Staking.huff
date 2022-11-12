@@ -151,7 +151,7 @@
 /// @notice Earned
 /// @notice Returns the amount of rewards earned by the given address
 /// @param account The address of the account
-#define macro EARNED() = takes (0) returns (1) {
+#define macro EARNED() = takes (0) returns (0) {
     0x04 calldataload                               // [account]
     EARNED_INNER()                                  // [earned]
     0x00 mstore                                     // []
