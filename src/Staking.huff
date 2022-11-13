@@ -82,7 +82,7 @@
     TSOWNABLE_CONSTRUCTOR()         // []
     0x04 calldataload               // [rewardsToken]
     [REWARDS_TOKEN_SLOT] sstore     // []
-    0x24 calldataload               // [rewardsToken, stakingToken]
+    0x24 calldataload               // [stakingToken]
     [STAKING_TOKEN_SLOT] sstore     // []
 }
 
