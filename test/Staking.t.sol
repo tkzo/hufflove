@@ -35,20 +35,17 @@ interface Staking {
     function setRewardsDuration(uint256) external;
 }
 
-interface Constructor {
-    function getArgOne() external returns (address);
-
-    function getArgTwo() external returns (uint256);
-}
-
 contract StakingTest is Test {
     /// @dev Address of the Staking contract.
     Staking public staking;
     Mock20 public rewardToken;
 
+    string constant public REWARD_NAME = "Reward Token";
+    string constant public REWARD_SYMBOL = "RWDT";
+
     /// @dev Setup the testing environment.
     function setUp() public {
-        rewardToken = new Mock20("Reward Token", "RWD");
+        rewardToken = new Mock20(REWARD_NAME, REWARD_SYMBOL);
         staking = Staking(
             HuffDeployer
                 .config()
@@ -67,11 +64,28 @@ contract StakingTest is Test {
         assertEq(stakingBalance, 100000e18);
     }
 
-    function testRecoverERC20() public {
-        staking.recoverERC20(address(rewardToken), 100000e18);
-        uint256 myBalance = rewardToken.balanceOf(address(this));
-        assertEq(myBalance, 1000000e18);
+    function testMockERC20Metadata() public {
+        string memory tokenName = rewardToken.name();
+        string memory tokenSymbol = rewardToken.symbol();
+        assertEq(keccak256(abi.encode(tokenName)), keccak256(abi.encode(REWARD_NAME)));
+        assertEq(keccak256(abi.encode(tokenSymbol)), keccak256(abi.encode(REWARD_SYMBOL)));
     }
+
+    function testBalanceOf() public {
+        uint256 balance = staking.balanceOf(address(this));
+        assertEq(balance,0);
+    }
+
+    function testTotalSupply() public {
+        uint256 totalSupply = staking.totalSupply();
+        assertEq(totalSupply, 0);
+    }
+
+    // function testRecoverERC20() public {
+    //     staking.recoverERC20(address(rewardToken), 100000e18);
+    //     uint256 myBalance = rewardToken.balanceOf(address(this));
+    //     assertEq(myBalance, 1000000e18);
+    // }
 
     // function testRewardForDuration() public {
     //     uint256 rewardDuration = 2592000;

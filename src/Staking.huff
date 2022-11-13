@@ -94,7 +94,7 @@
 /// @notice Returns the total token supply of the contract
 #define macro TOTAL_SUPPLY() = takes (0) returns (0) {
     NON_PAYABLE()                       // []
-    [TOTAL_SUPPLY_SLOT] sload           // [supply]
+    [TOTAL_SUPPLY_SLOT]                 // [supply]
     0x00 mstore                         // []
     0x20 0x00 return                    // []
 }
@@ -113,7 +113,7 @@
 /// @notice Returns the last time reward was applicable
 #define macro LAST_TIME_REWARD_APPLICABLE() = takes (0) returns (0) {
     timestamp                       // [now]
-    [PERIOD_FINISH_SLOT] sload      // [now, periodFinish]
+    [PERIOD_FINISH_SLOT]            // [now, periodFinish]
     dup2 dup2                       // [now, periodFinish, now, periodFinish]
     lt                              // [now < periodFinish, now, periodFinish]
 
@@ -133,17 +133,17 @@
 /// @notice Returns the reward per token
 #define macro REWARD_PER_TOKEN() = takes (0) returns (0) {
     NON_PAYABLE()                                   // []
-    [REWARD_PER_TOKEN_STORED_SLOT] sload            // [rewardPerTokenStored]
-    [TOTAL_SUPPLY_SLOT] sload                       // [totalSupply, rewardPerTokenStored]
+    [REWARD_PER_TOKEN_STORED_SLOT]                  // [rewardPerTokenStored]
+    [TOTAL_SUPPLY_SLOT]                             // [totalSupply, rewardPerTokenStored]
     dup1                                            // [totalSupply, totalSupply, rewardPerTokenStored]
     0x00 eq                                         // [totalSupply == 0, totalSupply, rewardPerTokenStored]
     
     totalSupplyJump jumpi                           // [totalSupply, rewardPerTokenStored]
 
     LAST_TIME_REWARD_APPLICABLE()                   // [lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
-    [LAST_UPDATE_TIME_SLOT] sload                   // [lastUpdateTime, lastTimeRewardApplicable, totalSupply, rewardPerTokenStored ]
+    [LAST_UPDATE_TIME_SLOT]                         // [lastUpdateTime, lastTimeRewardApplicable, totalSupply, rewardPerTokenStored ]
     SAFE_SUB()                                      // [lastUpdateTime - lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
-    [REWARD_RATE_SLOT] sload                        // [rewardRate, lastUpdateTime - lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
+    [REWARD_RATE_SLOT]                              // [rewardRate, lastUpdateTime - lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
     SAFE_MUL()                                      // [rewardRate * (lastUpdateTime - lastTimeRewardApplicable), totalSupply, rewardPerTokenStored]
     [DECIMAL] SAFE_MUL()                            // [rewardRate * (lastUpdateTime - lastTimeRewardApplicable) * DECIMAL, totalSupply, rewardPerTokenStored]
     SAFE_DIV()                                      // [rewardRate * (lastUpdateTime - lastTimeRewardApplicable) * DECIMAL / totalSupply, rewardPerTokenStored]
@@ -194,8 +194,8 @@
 /// @notice Returns the reward for the given duration
 #define macro GET_REWARD_FOR_DURATION() = takes (0) returns (0) {
     NON_PAYABLE()                                   // []
-    [REWARD_RATE_SLOT] sload                        // [rewardRate]
-    [DURATION_SLOT] sload                           // [duration, rewardRate]
+    [REWARD_RATE_SLOT]                              // [rewardRate]
+    [DURATION_SLOT]                                 // [duration, rewardRate]
     SAFE_MUL()                                      // [duration * rewardRate]
     0x00 mstore                                     // []
     0x20 0x00 return                                // []
@@ -218,12 +218,12 @@
     dup1                                            // [amount, amount]
     iszero                                          // [amount == 0, amount]
 
-    [AMOUNT_ZERO_LENGTH] sload                      // [AMOUNT_ZERO_LENGTH, amount == 0, amount]
-    [AMOUNT_ZERO_ERROR] sload                       // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, amount == 0, amount]
+    [AMOUNT_ZERO_LENGTH]                            // [AMOUNT_ZERO_LENGTH, amount == 0, amount]
+    [AMOUNT_ZERO_ERROR]                             // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, amount == 0, amount]
     swap2                                           // [amount == 0, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR, amount]
     REQUIRE()                                       // [amount]
 
-    [TOTAL_SUPPLY_SLOT] sload                       // [totalSupply, amount]
+    [TOTAL_SUPPLY_SLOT]                             // [totalSupply, amount]
     dup2                                            // [amount, totalSupply, amount]
     SAFE_ADD()                                      // [amount + totalSupply, amount]
     [TOTAL_SUPPLY_SLOT] sstore                      // [amount]
@@ -243,12 +243,12 @@
     dup1                                            // [amount, amount]
     0x60 mstore                                     // [amount]
     0x00 0x00 0x64 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, amount]
-    [STAKING_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize, amount] 
+    [STAKING_TOKEN_SLOT]                            // [address, value, argsOffset, argsSize, retOffset, retSize, amount] 
     gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, amount]
     call                                            // [success, amount]
 
-    [TRANSFER_LENGTH] sload                         // [length, success, amount]
-    [TRANSFER_ERROR] sload                          // [error, length, success, amount]
+    [TRANSFER_LENGTH]                               // [length, success, amount]
+    [TRANSFER_ERROR]                                // [error, length, success, amount]
     swap2                                           // [success, length, error, amount]
     REQUIRE()                                       // [amount]
 
@@ -278,8 +278,8 @@
     UPDATE_REWARD_INNER()                           // [amount]
     dup1                                            // [amount, amount]
     iszero                                          // [amount == 0, amount]
-    [AMOUNT_ZERO_LENGTH] sload                      // [AMOUNT_ZERO_LENGTH, amount == 0, amount]
-    [AMOUNT_ZERO_ERROR] sload                       // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, amount == 0, amount]
+    [AMOUNT_ZERO_LENGTH]                            // [AMOUNT_ZERO_LENGTH, amount == 0, amount]
+    [AMOUNT_ZERO_ERROR]                             // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, amount == 0, amount]
     swap2                                           // [amount == 0, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR, amount]
     REQUIRE()                                       // [amount]
 
@@ -291,7 +291,7 @@
     swap1                                           // [caller, balance - amount, amount]
     [BALANCES_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)   // [amount]
 
-    [TOTAL_SUPPLY_SLOT] sload                       // [totalSupply, amount]
+    [TOTAL_SUPPLY_SLOT]                             // [totalSupply, amount]
     SAFE_SUB()                                      // [totalSupply - amount, amount]
     [TOTAL_SUPPLY_SLOT] sstore                      // [amount]
 
@@ -301,12 +301,12 @@
     caller 0x40 mstore                              // [amount]
     dup1 0x60 mstore                                // [amount]
     0x00 0x00 0x64 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, amount]
-    [STAKING_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize, amount] 
+    [STAKING_TOKEN_SLOT]                            // [address, value, argsOffset, argsSize, retOffset, retSize, amount] 
     gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, amount]
     call                                            // [success, amount]
 
-    [TRANSFER_LENGTH] sload                         // [length, success, amount]
-    [TRANSFER_ERROR] sload                          // [error, length, success, amount]
+    [TRANSFER_LENGTH]                               // [length, success, amount]
+    [TRANSFER_ERROR]                                // [error, length, success, amount]
     swap2                                           // [success, length, error, amount]
     REQUIRE()                                       // [amount]
 
@@ -328,8 +328,8 @@
     [REWARDS_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)     // [reward]
     
     iszero                                          // [reward == 0]
-    [GET_REWARD_LENGTH] sload                       // [length, reward == 0]
-    [GET_REWARD_ERROR] sload                        // [error, length, reward == 0]
+    [GET_REWARD_LENGTH]                             // [length, reward == 0]
+    [GET_REWARD_ERROR]                              // [error, length, reward == 0]
     swap2                                           // [reward == 0, length, error]
     REQUIRE()                                       // []
 
@@ -341,13 +341,13 @@
     caller 0x20 mstore                              // [reward]
     dup1 0x40 mstore                                // [reward]
     0x00 0x00 0x44 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, reward]
-    [REWARDS_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize, reward] 
+    [REWARDS_TOKEN_SLOT]                            // [address, value, argsOffset, argsSize, retOffset, retSize, reward] 
     gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, reward]
     call                                            // [success, reward]
     dup1                                            // [success, success, reward]
 
-    [TRANSFER_LENGTH] sload                         // [length, success, reward]
-    [TRANSFER_ERROR] sload                          // [error, length, success, reward]
+    [TRANSFER_LENGTH]                               // [length, success, reward]
+    [TRANSFER_ERROR]                                // [error, length, success, reward]
     swap2                                           // [success, length, error, reward]
     REQUIRE()                                       // [reward]
 
@@ -380,7 +380,7 @@
 /// @notice Updates user rewards
 #define macro UPDATE_REWARD_INNER() = takes (1) returns (0) {
     // input stack: [account]
-    [ZERO_ADDRESS] sload                                            // [zeroAddress, caller]
+    [ZERO_ADDRESS]                                                  // [zeroAddress, caller]
     dup2 eq                                                         // [zeroAddress == caller, caller]
 
     zeroAddressJump jumpi                                           // [caller]
@@ -389,7 +389,7 @@
     EARNED_INNER()                                                  // [earned, caller]
     dup2                                                            // [caller, earned, caller]
     [REWARDS_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)                    // [caller]
-    [REWARD_PER_TOKEN_STORED_SLOT] sload                            // [rewardPerTokenStored, caller]
+    [REWARD_PER_TOKEN_STORED_SLOT]                                  // [rewardPerTokenStored, caller]
     [USER_REWARD_PER_TOKEN_PAID_SLOT] STORE_ELEMENT_FROM_KEYS(0x00) // []
 
     zeroAddressJump:                                                // [caller]
@@ -407,11 +407,11 @@
     NON_PAYABLE()                           // []
     ONLY_OWNER_MODIFIER()                   // []
 
-    [PERIOD_FINISH_SLOT] sload              // [periodFinish]
+    [PERIOD_FINISH_SLOT]                    // [periodFinish]
     block.timestamp                         // [timestamp, periodFinish]
     gt                                      // [timestamp > periodFinish]
-    [WRONG_ADDRESS_LENGTH] sload            // [AMOUNT_ZERO_LENGTH, condition]
-    [WRONG_ADDRESS_ERROR] sload             // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, condition]
+    [WRONG_ADDRESS_LENGTH]                  // [AMOUNT_ZERO_LENGTH, condition]
+    [WRONG_ADDRESS_ERROR]                   // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, condition]
     swap2                                   // [condition, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR]
     REQUIRE()                               // []
 
@@ -438,7 +438,7 @@
     ONLY_OWNER_MODIFIER()                           // []
     0x00 UPDATE_REWARD()                            // []
 
-    [PERIOD_FINISH_SLOT] sload                      // [periodFinish]
+    [PERIOD_FINISH_SLOT]                            // [periodFinish]
     dup1                                            // [periodFinish, periodFinish]
     block.timestamp                                 // [timestamp, periodFinish, periodFinish]
     gt                                              // [timestamp > periodFinish, periodFinish]    
@@ -448,11 +448,11 @@
     timestamp                                       // [timestamp, periodFinish]
     swap1                                           // [periodFinish, timestamp]
     SAFE_SUB()                                      // [periodFinish - timestamp]
-    [REWARD_RATE_SLOT] sload                        // [rewardRate, periodFinish - timestamp]
+    [REWARD_RATE_SLOT]                              // [rewardRate, periodFinish - timestamp]
     SAFE_MUL()                                      // [rewardRate * (periodFinish - timestamp)]
     0x04 calldataload                               // [reward, rewardRate * (periodFinish - timestamp)]
     add                                             // [reward + rewardRate * (periodFinish - timestamp)]
-    [REWARDS_DURATION_SLOT] sload                   // [rewardsDuration, reward + rewardRate * (periodFinish - timestamp)]
+    [REWARDS_DURATION_SLOT]                         // [rewardsDuration, reward + rewardRate * (periodFinish - timestamp)]
     swap1                                           // [reward + rewardRate * (periodFinish - timestamp), rewardsDuration]
     SAFE_DIV()                                      // [reward + rewardRate * (periodFinish - timestamp) / rewardsDuration]
     dup1                                            // [setRewardRate, setRewardRate]
@@ -461,7 +461,7 @@
 
     periodFinishJump:                               // [periodFinish]
     pop     
-    [REWARDS_DURATION_SLOT] sload                   // [rewardsDuration]
+    [REWARDS_DURATION_SLOT]                         // [rewardsDuration]
     dup1                                            // [rewardsDuration, rewardsDuration]
     0x04 calldataload                               // [reward, rewardsDuration, rewardsDuration]
     SAFE_DIV()                                      // [rewardRate, rewardsDuration]
@@ -469,21 +469,21 @@
     [REWARD_RATE_SLOT] sstore                       // [setRewardRate, rewardsDuration]
 
     rewardRateJump:                                 // [setRewardRate]
-    [REWARDS_DURATION_SLOT] sload                   // [rewardsDuration, setRewardRate]
+    [REWARDS_DURATION_SLOT]                         // [rewardsDuration, setRewardRate]
     address                                         // [address, rewardsDuration, setRewardRate]
     [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)    // [balance, rewardsDuration, setRewardRate]
     SAFE_DIV()                                      // [realRewardPerToken, setRewardRate]
     swap1                                           // [setRewardRate, realRewardPerToken]
     lt                                              // [setRewardRate < realRewardPerToken]
-    [SET_REWARD_LENGTH] sload                       // [SET_REWARD_LENGTH, condition]
-    [SET_REWARD_ERROR] sload                        // [SET_REWARD_ERROR, SET_REWARD_LENGTH, condition]
+    [SET_REWARD_LENGTH]                             // [SET_REWARD_LENGTH, condition]
+    [SET_REWARD_ERROR]                              // [SET_REWARD_ERROR, SET_REWARD_LENGTH, condition]
     swap2                                           // [condition, SET_REWARD_LENGTH, SET_REWARD_ERROR]
     REQUIRE()                                       // []
 
     timestamp                                       // [timestamp]
     dup1                                            // [timestamp, timestamp]
     [LAST_UPDATE_TIME_SLOT] sstore                  // [timestamp]
-    [REWARDS_DURATION_SLOT] sload                   // [rewardsDuration, timestamp]
+    [REWARDS_DURATION_SLOT]                         // [rewardsDuration, timestamp]
     add                                             // [periodFinish]
     [PERIOD_FINISH_SLOT] sstore                     // []
 
@@ -506,10 +506,10 @@
     ONLY_OWNER_MODIFIER()       // []
     
     0x04 calldataload           // [address]
-    [STAKING_TOKEN_SLOT] sload  // [stakingToken, address]
+    [STAKING_TOKEN_SLOT]        // [stakingToken, address]
     eq iszero                   // [condition]
-    [TRANSFER_LENGTH] sload     // [length, condition]
-    [TRANSFER_ERROR] sload      // [error, length, condition]
+    [TRANSFER_LENGTH]           // [length, condition]
+    [TRANSFER_ERROR]            // [error, length, condition]
     swap2                       // [condition, length, error]
     REQUIRE()                   // []
 
@@ -527,8 +527,8 @@
     dup1                        // [success, success]
 
     emitEventJump jumpi         // [success]
-    [TRANSFER_LENGTH] sload     // [length, success]
-    [TRANSFER_ERROR] sload      // [error, length, success]
+    [TRANSFER_LENGTH]           // [length, success]
+    [TRANSFER_ERROR]            // [error, length, success]
     swap2                       // [success, length, error]
     REQUIRE()
 
