@@ -46,17 +46,25 @@ interface Staking {
 }
 
 contract StakingTest is Test {
+    using SafeMath for uint256;
     /// @dev Address of the Staking contract.
     Staking public staking;
     Mock20 public rewardToken;
+    Mock20 public randomToken;
 
     string public constant REWARD_NAME = "Reward Token";
     string public constant REWARD_SYMBOL = "RWDT";
     uint256 public constant REWARD_AMOUNT = 100000e18;
+    uint256 public constant MINTED_AMOUNT = 1000000e18;
+
+    string public constant RANDOM_NAME = "Random Token";
+    string public constant RANDOM_SYMBOL = "RNDT";
 
     /// @dev Setup the testing environment.
     function setUp() public {
         rewardToken = new Mock20(REWARD_NAME, REWARD_SYMBOL);
+        randomToken = new Mock20(RANDOM_NAME, RANDOM_SYMBOL);
+
         staking = Staking(
             HuffDeployer
                 .config()
@@ -70,6 +78,7 @@ contract StakingTest is Test {
                 .deploy("Staking")
         );
         rewardToken.transfer(address(staking), REWARD_AMOUNT);
+        randomToken.transfer(address(staking), REWARD_AMOUNT);
     }
 
     function testMockERC20Metadata() public {
@@ -117,11 +126,15 @@ contract StakingTest is Test {
         assertEq(owner, address(this));
     }
 
-    // function testRecoverERC20() public {
-    //     staking.recoverERC20(address(rewardToken), 100000e18);
-    //     uint256 myBalance = rewardToken.balanceOf(address(this));
-    //     assertEq(myBalance, 1000000e18);
-    // }
+    function testRecoverERC20() public {
+        uint256 balance_pre = randomToken.balanceOf(address(this));
+        uint256 diff = MINTED_AMOUNT.sub(REWARD_AMOUNT);
+        assertEq(balance_pre, diff);
+
+        staking.recoverERC20(address(randomToken), REWARD_AMOUNT);
+        uint256 myBalance = randomToken.balanceOf(address(this));
+        assertEq(myBalance, MINTED_AMOUNT);
+    }
 
     // function testRewardForDuration() public {
     //     uint256 rewardDuration = 2592000;

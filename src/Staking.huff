@@ -31,11 +31,11 @@
 // #define function getReward() nonpayable returns ()
 // #define function exit() nonpayable returns () 
 // #define function notifyRewardAmount(uint256) nonpayable returns ()
-// #define function recoverERC20(address,uint256) nonpayable returns ()
+#define function recoverERC20(address,uint256) nonpayable returns ()
 #define function setRewardsDuration(uint256) nonpayable returns ()
 
 // // IERC20
-// #define function transfer(address,uint256) nonpayable returns ()
+#define function transfer(address,uint256) nonpayable returns ()
 // #define function transferFrom(address,address,uint256) nonpayable returns ()
 
 // // Events
@@ -44,7 +44,7 @@
 // #define event Withdrawn(address indexed, uint256)
 // #define event RewardPaid(address indexed, uint256)
 // #define event RewardsDurationUpdated(uint256)
-// #define event Recovered(address, uint256)
+#define event Recovered(address, uint256)
 
 // Storage
 #define constant REWARDS_TOKEN_SLOT = FREE_STORAGE_POINTER()
@@ -392,6 +392,8 @@
 //     log3                                            // []
 // }
 
+// /// @notice Exit
+// /// @notice Withdraws all tokens and rewards
 // #define macro EXIT() = takes (0) returns (0) {
 //     LOCK()                                          // []
 //     caller                                          // [caller]
@@ -531,52 +533,53 @@
 //     0x20 0x00 return                                // []
 // }
 
-// /// @notice Recover ERC-20
-// /// @notice Non-Payable function that transfers the given token in given amount to the owner.
-// /// @param token The address of the token to recover
-// /// @param amount The amount of the token to recover
-// #define macro RECOVER_ERC20() = takes (0) returns (0) {
-//     NON_PAYABLE()               // []
-//     ONLY_OWNER_MODIFIER()       // []
+/// @notice Recover ERC-20
+/// @notice Non-Payable function that transfers the given token in given amount to the owner.
+/// @param token The address of the token to recover
+/// @param amount The amount of the token to recover
+#define macro RECOVER_ERC20() = takes (0) returns (0) {
+    NON_PAYABLE()               // []
+    ONLY_OWNER_MODIFIER()       // []
     
-//     0x04 calldataload           // [address]
-//     [STAKING_TOKEN_SLOT]        // [stakingToken, address]
-//     eq iszero                   // [condition]
-//     [TRANSFER_LENGTH]           // [length, condition]
-//     [TRANSFER_ERROR]            // [error, length, condition]
-//     swap2                       // [condition, length, error]
-//     REQUIRE()                   // []
+    0x04 calldataload           // [address]
+    [STAKING_TOKEN_SLOT]        // [stakingToken, address]
+    eq iszero                   // [condition]
+    [TRANSFER_LENGTH]           // [length, condition]
+    [TRANSFER_ERROR]            // [error, length, condition]
+    swap2                       // [condition, length, error]
+    REQUIRE()                   // []
 
-//     __FUNC_SIG(transfer)        // [transfer_sig]
-//     0x00 mstore                 // []
-//     caller                      // [caller]
-//     0x20 mstore                 // []
-//     0x24 calldataload           // [amount]
-//     0x40 mstore                 // []
-//     0x00 0x00 0x44 0x1c         // [argsOffset, argsSize, retOffset, retSize]
-//     0x00                        // [value, argsOffset, argsSize, retOffset, retSize]
-//     0x04 calldataload           // [address, value, argsOffset, argsSize, retOffset, retSize] 
-//     gas                         // [gas, address, value, argsOffset, argsSize, retOffset, retSize]
-//     call                        // [success]
-//     dup1                        // [success, success]
+    __FUNC_SIG(transfer)        // [transfer_sig]
+    0x00 mstore                 // []
+    caller                      // [caller]
+    0x20 mstore                 // []
+    0x24 calldataload           // [amount]
+    0x40 mstore                 // []
+    0x00 0x00 0x44 0x1c         // [argsOffset, argsSize, retOffset, retSize]
+    0x00                        // [value, argsOffset, argsSize, retOffset, retSize]
+    0x04 calldataload           // [address, value, argsOffset, argsSize, retOffset, retSize] 
+    gas                         // [gas, address, value, argsOffset, argsSize, retOffset, retSize]
+    call                        // [success]
+    dup1                        // [success, success]
 
-//     emitEventJump jumpi         // [success]
-//     [TRANSFER_LENGTH]           // [length, success]
-//     [TRANSFER_ERROR]            // [error, length, success]
-//     swap2                       // [success, length, error]
-//     REQUIRE()
+    emitEventJump jumpi         // [success]
+    [TRANSFER_LENGTH]           // [length, success]
+    [TRANSFER_ERROR]            // [error, length, success]
+    swap2                       // [success, length, error]
+    REQUIRE()
 
-//     emitEventJump:
-//     0x24 calldataload           // [amount]
-//     0x04 calldataload           // [address, amount]
-//     __EVENT_HASH(Recovered)     // [sig, address, amount]
-//     dup1 0x00 mstore            // [sig, address, amount]
-//     0x20 0x00                   // [0, 32, sig, address, amount]
-//     log3                        // []
+    emitEventJump:
+    pop                         // []
+    0x24 calldataload           // [amount]
+    0x04 calldataload           // [address, amount]
+    __EVENT_HASH(Recovered)     // [sig, address, amount]
+    dup1 0x00 mstore            // [sig, address, amount]
+    0x20 0x00                   // [0, 32, sig, address, amount]
+    log3                        // []
 
-//     0x01 0x00 mstore            // []
-//     0x20 0x00 return            // []
-// }
+    0x01 0x00 mstore            // []
+    0x20 0x00 return            // []
+}
 
 #define macro MAIN() = takes (0) returns (0) {
 
@@ -596,10 +599,12 @@
     // dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
     // dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
     // dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
-    // dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
+    dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
     // dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
 
     TSOWNABLE_MAIN()
+
+    // why doesn't this work?
 
     rewardsDurationJump:
         REWARDS_DURATION()          // []
@@ -633,8 +638,8 @@
     //     finalize jump
     // notifyRewardAmountJump:
     //     NOTIFY_REWARD_AMOUNT()
-    // recoverERC20Jump:
-    //     RECOVER_ERC20()
+    recoverERC20Jump:
+        RECOVER_ERC20()
     // setRewardsDurationJump:
     //     SET_REWARDS_DURATION()
     // finalize:
