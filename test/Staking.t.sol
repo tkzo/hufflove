@@ -54,8 +54,10 @@ contract StakingTest is Test {
 
     string public constant REWARD_NAME = "Reward Token";
     string public constant REWARD_SYMBOL = "RWDT";
+
     uint256 public constant REWARD_AMOUNT = 100000e18;
     uint256 public constant MINTED_AMOUNT = 1000000e18;
+    uint256 public constant REWARD_DURATION = 2592000;
 
     string public constant RANDOM_NAME = "Random Token";
     string public constant RANDOM_SYMBOL = "RNDT";
@@ -101,6 +103,11 @@ contract StakingTest is Test {
         assertEq(stakingToken, address(rewardToken));
     }
 
+    function testOwner() public {
+        address owner = staking.owner();
+        assertEq(owner, address(this));
+    }
+
     function testLastTimeRewardApplicable() public {
         uint256 result = staking.lastTimeRewardApplicable();
         assertEq(result, block.timestamp);
@@ -116,16 +123,6 @@ contract StakingTest is Test {
         assertEq(totalSupply, 0);
     }
 
-    function testRewardsDuration() public {
-        uint256 duration = staking.rewardsDuration();
-        assertEq(duration, 0);
-    }
-
-    function testOwner() public {
-        address owner = staking.owner();
-        assertEq(owner, address(this));
-    }
-
     function testRecoverERC20() public {
         uint256 balance_pre = randomToken.balanceOf(address(this));
         uint256 diff = MINTED_AMOUNT.sub(REWARD_AMOUNT);
@@ -134,6 +131,17 @@ contract StakingTest is Test {
         staking.recoverERC20(address(randomToken), REWARD_AMOUNT);
         uint256 myBalance = randomToken.balanceOf(address(this));
         assertEq(myBalance, MINTED_AMOUNT);
+    }
+
+    function testRewardsDuration() public {
+        uint256 duration_pre = staking.rewardsDuration();
+        assertEq(duration_pre, 0);
+    }
+
+    function testSetRewardsDuration() public {
+        staking.setRewardsDuration(REWARD_DURATION);
+        uint256 duration_after = staking.rewardsDuration();
+        assertEq(duration_after, REWARD_DURATION);
     }
 
     // function testRewardForDuration() public {

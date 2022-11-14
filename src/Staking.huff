@@ -43,7 +43,7 @@
 // #define event Staked(address indexed, uint256)
 // #define event Withdrawn(address indexed, uint256)
 // #define event RewardPaid(address indexed, uint256)
-// #define event RewardsDurationUpdated(uint256)
+#define event RewardsDurationUpdated(uint256)
 #define event Recovered(address, uint256)
 
 // Storage
@@ -71,8 +71,8 @@
 #define constant TRANSFER_LENGTH = 0x1e
 #define constant GET_REWARD_ERROR = 0x4E4F205245574152445300000000000000000000000000000000000000000000
 #define constant GET_REWARD_LENGTH = 0x14
-#define constant WRONG_ADDRESS_ERROR = 0x57524F4E47204144445245535300000000000000000000000000000000000000
-#define constant WRONG_ADDRESS_LENGTH = 0x1a
+#define constant PERIOD_ERROR = 0x504552494F44204E4F54204F5645520000000000000000000000000000000000
+#define constant PERIOD_LENGTH = 0x1e
 #define constant SET_REWARD_ERROR = 0x4E4F2042414C414E434500000000000000000000000000000000000000000000
 #define constant SET_REWARD_LENGTH = 0x1a
 #define constant STAKING_TOKEN_ERROR = 0x57524F4E4720544F4B454E000000000000000000000000000000000000000000
@@ -81,7 +81,6 @@
 /// @notice Constructor
 /// @notice Sets the initial addresses
 #define macro CONSTRUCTOR() = takes (0) returns (0) {
-
     0x60                            // [size] - byte size to copy
     0x60 codesize sub               // [offset, size] - offset in the code to copy from
     0x00                            // [mem, offset, size] - offset in memory to copy to
@@ -436,33 +435,33 @@
 ///                       ADMIN FUNCTIONS                         /
 /// ------------------------------------------------------------- /
 
-// /// @notice Set Rewards Duration
-// /// @notice Sets rewards duration
-// /// @param _rewardsDuration Rewards duration
-// #define macro SET_REWARDS_DURATION() = takes (0) returns (0) {
-//     NON_PAYABLE()                           // []
-//     ONLY_OWNER_MODIFIER()                   // []
+/// @notice Set Rewards Duration
+/// @notice Sets rewards duration
+/// @param duration The duration to set
+#define macro SET_REWARDS_DURATION() = takes (0) returns (0) {
+    NON_PAYABLE()                           // []
+    ONLY_OWNER_MODIFIER()                   // []
 
-//     [PERIOD_FINISH_SLOT] sload              // [periodFinish]
-//     block.timestamp                         // [timestamp, periodFinish]
-//     gt                                      // [timestamp > periodFinish]
-//     [WRONG_ADDRESS_LENGTH] sload            // [AMOUNT_ZERO_LENGTH, condition]
-//     [WRONG_ADDRESS_ERROR] sload             // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, condition]
-//     swap2                                   // [condition, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR]
-//     REQUIRE()                               // []
+    [PERIOD_FINISH_SLOT] sload                     // [periodFinish]
+    timestamp                               // [timestamp, periodFinish]
+    gt                                      // [timestamp > periodFinish]
+    [PERIOD_LENGTH]                         // [AMOUNT_ZERO_LENGTH, condition]
+    [PERIOD_ERROR]                          // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, condition]
+    swap2                                   // [condition, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR]
+    REQUIRE()                               // []
 
-//     // 0x04 calldataload                       // [duration]
-//     // dup1                                    // [duration, duration]
-//     // [REWARDS_DURATION_SLOT] sstore          // [duration]
+    0x04 calldataload                       // [duration]
+    dup1                                    // [duration, duration]
+    [REWARDS_DURATION_SLOT] sstore          // [duration]
 
-//     // __EVENT_HASH(RewardsDurationUpdated)    // [sig, duration]
-//     // dup1 0x00 mstore                        // [sig, duration]
-//     // 0x20 0x00                               // [0, 32, sig, duration]
-//     // log2 
+    __EVENT_HASH(RewardsDurationUpdated)    // [sig, duration]
+    dup1 0x00 mstore                        // [sig, duration]
+    0x20 0x00                               // [0, 32, sig, duration]
+    log2                                    // []
 
-//     0x01 0x00 mstore                        // []
-//     0x20 0x00 return                        // []
-// }
+    0x01 0x00 mstore                        // []
+    0x20 0x00 return                        // []
+}
 
 // // TODO: Refactor to remove excess storage + calldata calls
 // /// @notice Notify Reward Amount
@@ -560,16 +559,12 @@
     0x04 calldataload           // [address, value, argsOffset, argsSize, retOffset, retSize] 
     gas                         // [gas, address, value, argsOffset, argsSize, retOffset, retSize]
     call                        // [success]
-    dup1                        // [success, success]
 
-    emitEventJump jumpi         // [success]
     [TRANSFER_LENGTH]           // [length, success]
     [TRANSFER_ERROR]            // [error, length, success]
     swap2                       // [success, length, error]
     REQUIRE()
 
-    emitEventJump:
-    pop                         // []
     0x24 calldataload           // [amount]
     0x04 calldataload           // [address, amount]
     __EVENT_HASH(Recovered)     // [sig, address, amount]
@@ -585,7 +580,7 @@
 
     0x00 calldataload 0xE0 shr
 
-    // dup1 __FUNC_SIG(rewardsDuration)            eq rewardsDurationJump              jumpi
+    dup1 __FUNC_SIG(rewardsDuration)            eq rewardsDurationJump              jumpi
     dup1 __FUNC_SIG(rewardsToken)               eq rewardsTokenJump                 jumpi
     dup1 __FUNC_SIG(stakingToken)               eq stakingTokenJump                 jumpi
     dup1 __FUNC_SIG(totalSupply)                eq totalSupplyJump                  jumpi
@@ -600,7 +595,7 @@
     // dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
     // dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
     dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
-    // dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
+    dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
 
     TSOWNABLE_MAIN()
 
@@ -640,8 +635,8 @@
     //     NOTIFY_REWARD_AMOUNT()
     recoverERC20Jump:
         RECOVER_ERC20()
-    // setRewardsDurationJump:
-    //     SET_REWARDS_DURATION()
+    setRewardsDurationJump:
+        SET_REWARDS_DURATION()
     // finalize:
     //     UNLOCK()
     //     0x01 0x00 mstore
