@@ -442,7 +442,7 @@
     NON_PAYABLE()                           // []
     ONLY_OWNER_MODIFIER()                   // []
 
-    [PERIOD_FINISH_SLOT] sload                     // [periodFinish]
+    [PERIOD_FINISH_SLOT] sload              // [periodFinish]
     timestamp                               // [timestamp, periodFinish]
     gt                                      // [timestamp > periodFinish]
     [PERIOD_LENGTH]                         // [AMOUNT_ZERO_LENGTH, condition]
@@ -541,7 +541,7 @@
     ONLY_OWNER_MODIFIER()       // []
     
     0x04 calldataload           // [address]
-    [STAKING_TOKEN_SLOT]        // [stakingToken, address]
+    [STAKING_TOKEN_SLOT] sload  // [stakingToken, address]
     eq iszero                   // [condition]
     [TRANSFER_LENGTH]           // [length, condition]
     [TRANSFER_ERROR]            // [error, length, condition]
