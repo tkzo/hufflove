@@ -8,6 +8,16 @@ import "solidity/Mock20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 interface Staking {
+    function pendingOwner() external view returns (address);
+
+    function owner() external view returns (address);
+
+    function rewardsDuration() external view returns (uint256);
+
+    function rewardsToken() external view returns (address);
+
+    function stakingToken() external view returns (address);
+
     function totalSupply() external view returns (uint256);
 
     function balanceOf(address) external view returns (uint256);
@@ -40,8 +50,9 @@ contract StakingTest is Test {
     Staking public staking;
     Mock20 public rewardToken;
 
-    string constant public REWARD_NAME = "Reward Token";
-    string constant public REWARD_SYMBOL = "RWDT";
+    string public constant REWARD_NAME = "Reward Token";
+    string public constant REWARD_SYMBOL = "RWDT";
+    uint256 public constant REWARD_AMOUNT = 100000e18;
 
     /// @dev Setup the testing environment.
     function setUp() public {
@@ -52,33 +63,58 @@ contract StakingTest is Test {
                 .with_args(
                     bytes.concat(
                         abi.encode(address(rewardToken)),
-                        abi.encode(address(rewardToken))
+                        abi.encode(address(rewardToken)),
+                        abi.encode(address(this))
                     )
                 )
                 .deploy("Staking")
         );
-        uint256 myBalance = rewardToken.balanceOf(address(this));
-        assertEq(myBalance, 1000000e18);
-        rewardToken.transfer(address(staking), 100000e18);
-        uint256 stakingBalance = rewardToken.balanceOf(address(staking));
-        assertEq(stakingBalance, 100000e18);
+        rewardToken.transfer(address(staking), REWARD_AMOUNT);
     }
 
     function testMockERC20Metadata() public {
         string memory tokenName = rewardToken.name();
         string memory tokenSymbol = rewardToken.symbol();
-        assertEq(keccak256(abi.encode(tokenName)), keccak256(abi.encode(REWARD_NAME)));
-        assertEq(keccak256(abi.encode(tokenSymbol)), keccak256(abi.encode(REWARD_SYMBOL)));
+        assertEq(
+            keccak256(abi.encode(tokenName)),
+            keccak256(abi.encode(REWARD_NAME))
+        );
+        assertEq(
+            keccak256(abi.encode(tokenSymbol)),
+            keccak256(abi.encode(REWARD_SYMBOL))
+        );
+    }
+
+    function testConstructorArgs() public {
+        address rewardsToken = staking.rewardsToken();
+        address stakingToken = staking.stakingToken();
+        assertEq(rewardsToken, address(rewardToken));
+        assertEq(stakingToken, address(rewardToken));
+    }
+
+    function testLastTimeRewardApplicable() public {
+        uint256 result = staking.lastTimeRewardApplicable();
+        assertEq(result, block.timestamp);
     }
 
     function testBalanceOf() public {
         uint256 balance = staking.balanceOf(address(this));
-        assertEq(balance,0);
+        assertEq(balance, 0);
     }
 
     function testTotalSupply() public {
         uint256 totalSupply = staking.totalSupply();
         assertEq(totalSupply, 0);
+    }
+
+    function testRewardsDuration() public {
+        uint256 duration = staking.rewardsDuration();
+        assertEq(duration, 0);
+    }
+
+    function testOwner() public {
+        address owner = staking.owner();
+        assertEq(owner, address(this));
     }
 
     // function testRecoverERC20() public {
