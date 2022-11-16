@@ -14,8 +14,7 @@
 // #include "huffmate/tokens/ERC20.huff"
 #include "huffmate/utils/Errors.huff"
 #include "huffmate/utils/ERC20Transfer.huff"
-
-// #include "huffmate/utils/ReentrancyGuard.huff"
+#include "./ReentrancyGuard.huff"
 #include "./TSOwnable.huff"
 
 // Interface
@@ -96,6 +95,7 @@
     [STAKING_TOKEN_SLOT] sstore     // []
     0x40 mload                      // [pendingOwner]
     TSOWNABLE_CONSTRUCTOR()         // []
+    UNLOCK()                        // []
 }
 
 /// ------------------------------------------------------------- /
