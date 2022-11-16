@@ -13,6 +13,8 @@
 #include "huffmate/math/SafeMath.huff"
 // #include "huffmate/tokens/ERC20.huff"
 #include "huffmate/utils/Errors.huff"
+#include "huffmate/utils/ERC20Transfer.huff"
+
 // #include "huffmate/utils/ReentrancyGuard.huff"
 #include "./TSOwnable.huff"
 
@@ -24,7 +26,7 @@
 #define function balanceOf(address) view returns (uint256)
 #define function lastTimeRewardApplicable() view returns (uint256)
 #define function rewardPerToken() view returns (uint256)
-#define function getRewardRate(uint256) view returns (uint256)
+#define function getRewardRate() view returns (uint256)
 #define function notifyRewardAmount(uint256) nonpayable returns ()
 
 // #define function earned(address) view returns (uint256)
@@ -64,7 +66,7 @@
 // Utility Constants
 #define constant UINT_256_MAX = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 #define constant DECIMAL = 0xDE0B6B3A7640000
-#define constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000
+#define constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000000000000000000000000000
 
 // Errors
 #define constant AMOUNT_ZERO_ERROR = 0x5A45524F20414D4F554E54000000000000000000000000000000000000000000
@@ -429,22 +431,22 @@
     [REWARD_PER_TOKEN_STORED_SLOT] sstore                           // [account]
     LAST_TIME_REWARD_APPLICABLE_INNER()                             // [lastTimeRewardApplicable, account]
     [LAST_UPDATE_TIME_SLOT] sstore                                  // [account]
-    [ZERO_ADDRESS] sload                                            // [zeroAddress, caller]
-    dup2 eq                                                         // [zeroAddress == caller, caller]
+    [ZERO_ADDRESS]                                                  // [zeroAddress, account]
+    dup2 eq                                                         // [zeroAddress == account, account]
 
-    zeroAddressJump jumpi                                           // [caller]
+    zeroAddressJump jumpi                                           // [account]
 
-    dup1 dup1                                                       // [caller, caller, caller]
-    EARNED_INNER()                                                  // [earned, caller, caller]
-    dup2                                                            // [caller, earned, caller, caller]
-    [REWARDS_SLOT]                                                  // [REWARDS_SLOT, caller, earned, caller, caller]
-    STORE_ELEMENT_FROM_KEYS(0x00)                                   // [caller, caller]
-    [REWARD_PER_TOKEN_STORED_SLOT]                                  // [rewardPerTokenStored, caller]
-    dup2                                                            // [caller, rewardPerTokenStored, caller]
-    [USER_REWARD_PER_TOKEN_PAID_SLOT]                               // [userRewardPerTokenPaid, caller, rewardPerTokenStored, caller]
-    STORE_ELEMENT_FROM_KEYS(0x00)                                   // [caller]
+    dup1 dup1                                                       // [account, account, account]
+    EARNED_INNER()                                                  // [earned, account, account]
+    dup2                                                            // [account, earned, account, account]
+    [REWARDS_SLOT]                                                  // [REWARDS_SLOT, account, earned, account, account]
+    STORE_ELEMENT_FROM_KEYS(0x00)                                   // [account, account]
+    [REWARD_PER_TOKEN_STORED_SLOT]                                  // [rewardPerTokenStored, account]
+    dup2                                                            // [account, rewardPerTokenStored, account]
+    [USER_REWARD_PER_TOKEN_PAID_SLOT]                               // [userRewardPerTokenPaid, account, rewardPerTokenStored, account]
+    STORE_ELEMENT_FROM_KEYS(0x00)                                   // [account]
 
-    zeroAddressJump:                                                // [caller]
+    zeroAddressJump:                                                // [account]
     pop                                                             // []
 }
 
@@ -512,23 +514,28 @@
     rewardRateJump jump                             // [setRewardRate]
 
     periodFinishJump:                               // [periodFinish]
-    pop     
+    pop                                             // []
     [REWARDS_DURATION_SLOT] sload                   // [rewardsDuration]
-    dup1                                            // [rewardsDuration, rewardsDuration]
-    0x04 calldataload                               // [reward, rewardsDuration, rewardsDuration]
-    SAFE_DIV()                                      // [setRewardRate, rewardsDuration]
-    dup1                                            // [setRewardRate, setRewardRate, rewardsDuration]
-    [REWARD_RATE_SLOT] sstore                       // [setRewardRate, rewardsDuration]
-    swap1 pop                                       // [setRewardRate]
+    0x04 calldataload                               // [reward, rewardsDuration]
+    SAFE_DIV()                                      // [setRewardRate]
+    dup1                                            // [setRewardRate, setRewardRate]
+    [REWARD_RATE_SLOT] sstore                       // [setRewardRate]
 
     rewardRateJump:                                 // [setRewardRate]
     [REWARDS_DURATION_SLOT] sload                   // [rewardsDuration, setRewardRate]
+    __FUNC_SIG(balanceOf)                           // [sig, rewardsDuration, setRewardRate]
+    0x00 mstore                                     // [rewardsDuration, setRewardRate]
     address                                         // [address, rewardsDuration, setRewardRate]
-    [BALANCES_SLOT] sload                           // [BALANCES_SLOT, address, rewardsDuration, setRewardRate]
-    LOAD_ELEMENT_FROM_KEYS(0x00)                    // [balance, rewardsDuration, setRewardRate]
+    0x20 mstore                                     // [rewardsDuration, setRewardRate]
+    0x20 0x00 0x24 0x1c                             // [argsOffset, argsSize, retOffset, retSize, rewardsDuration, setRewardRate]
+    [REWARDS_TOKEN_SLOT] sload                      // [rewardsToken, argsOffset, argsSize, retOffset, retSize, rewardsDuration, setRewardRate]
+    gas                                             // [gas, rewardsToken, argsOffset, argsSize, retOffset, retSize, rewardsDuration, setRewardRate]
+    staticcall                                      // [success, rewardsDuration, setRewardRate]
+    pop                                             // [rewardsDuration, setRewardRate]
+    COPY_RETURN_DATA(0x00,0x00)                     // [rewardsDuration, setRewardRate]
+    0x00 mload                                      // [balance, rewardsDuration, setRewardRate]
     SAFE_DIV()                                      // [realRewardPerToken, setRewardRate]
-    swap1                                           // [setRewardRate, realRewardPerToken]
-    lt                                              // [setRewardRate < realRewardPerToken]
+    lt iszero                                       // [setRewardRate, realRewardPerToken]
     [SET_REWARD_LENGTH] sload                       // [SET_REWARD_LENGTH, condition]
     [SET_REWARD_ERROR] sload                        // [SET_REWARD_ERROR, SET_REWARD_LENGTH, condition]
     swap2                                           // [condition, SET_REWARD_LENGTH, SET_REWARD_ERROR]
