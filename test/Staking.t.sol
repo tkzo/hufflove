@@ -30,6 +30,8 @@ interface Staking {
 
     function getRewardForDuration() external view returns (uint256);
 
+    function getRewardRate() external view returns (uint256);
+
     function stake(uint256) external;
 
     function withdraw(uint256) external;
@@ -110,7 +112,7 @@ contract StakingTest is Test {
 
     function testLastTimeRewardApplicable() public {
         uint256 result = staking.lastTimeRewardApplicable();
-        assertEq(result, block.timestamp);
+        assertEq(result, 0);
     }
 
     function testBalanceOf() public {
@@ -144,10 +146,25 @@ contract StakingTest is Test {
         assertEq(duration_after, REWARD_DURATION);
     }
 
-    // function testRewardForDuration() public {
-    //     uint256 rewardDuration = 2592000;
-    //     uint256 rewardAmount = 100000e18;
-    //     staking.setRewardsDuration(rewardDuration); // month
+    function testRewardPerToken() public {
+        uint256 rpt = staking.rewardPerToken();
+        uint256 totalSupply = staking.totalSupply();
+        if (totalSupply == 0) {
+            assertEq(rpt, 0);
+        }
+    }
+
+    function testNotifyRewardAmount() public {
+        staking.setRewardsDuration(REWARD_DURATION);
+        staking.notifyRewardAmount(REWARD_AMOUNT);
+        uint256 rewardRate = staking.getRewardRate();
+        console.log("Reward rate:", rewardRate);
+        uint256 expectedRate = REWARD_AMOUNT.div(REWARD_DURATION);
+        assertEq(rewardRate, expectedRate);
+    }
+
+    // function testGetRewardForDuration() public {
+    //     staking.setRewardsDuration(REWARD_DURATION);
     //     staking.notifyRewardAmount(rewardAmount);
     //     uint256 rewardForDuration = staking.getRewardForDuration();
     //     uint256 expectation = rewardAmount / rewardDuration;
