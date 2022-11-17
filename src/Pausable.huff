@@ -20,9 +20,9 @@
 #define constant _PAUSED = FREE_STORAGE_POINTER()
 
 #define macro PAUSABLE_CONSTRUCTOR() = takes (0) returns (0) {
-    0x00 [PAUSED] sstore
+    0x00 [_PAUSED] sstore
 }
-
+// remove these
 #define macro WHEN_PAUSED() = takes (0) returns (0) {
     REQUIRE_PAUSED()
 }

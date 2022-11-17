@@ -56,13 +56,14 @@ contract StakingTest is Test {
 
     string public constant REWARD_NAME = "Reward Token";
     string public constant REWARD_SYMBOL = "RWDT";
+    string public constant RANDOM_NAME = "Random Token";
+    string public constant RANDOM_SYMBOL = "RNDT";
 
+    uint256 public constant STAKE_AMOUNT = 50000e18;
     uint256 public constant REWARD_AMOUNT = 100000e18;
     uint256 public constant MINTED_AMOUNT = 1000000e18;
     uint256 public constant REWARD_DURATION = 2592000;
-
-    string public constant RANDOM_NAME = "Random Token";
-    string public constant RANDOM_SYMBOL = "RNDT";
+    uint256 public constant MAX_UINT256 = type(uint256).max;
 
     /// @dev Setup the testing environment.
     function setUp() public {
@@ -96,6 +97,15 @@ contract StakingTest is Test {
             keccak256(abi.encode(tokenSymbol)),
             keccak256(abi.encode(REWARD_SYMBOL))
         );
+    }
+
+    function testMockERC20Approve() public {
+        rewardToken.approve(address(staking), MAX_UINT256);
+        uint256 allowance = rewardToken.allowance(
+            address(this),
+            address(staking)
+        );
+        assertEq(allowance, MAX_UINT256);
     }
 
     function testConstructorArgs() public {
@@ -158,16 +168,23 @@ contract StakingTest is Test {
         staking.setRewardsDuration(REWARD_DURATION);
         staking.notifyRewardAmount(REWARD_AMOUNT);
         uint256 rewardRate = staking.getRewardRate();
-        console.log("Reward rate:", rewardRate);
         uint256 expectedRate = REWARD_AMOUNT.div(REWARD_DURATION);
         assertEq(rewardRate, expectedRate);
     }
 
-    // function testGetRewardForDuration() public {
-    //     staking.setRewardsDuration(REWARD_DURATION);
-    //     staking.notifyRewardAmount(rewardAmount);
-    //     uint256 rewardForDuration = staking.getRewardForDuration();
-    //     uint256 expectation = rewardAmount / rewardDuration;
-    //     assertEq(rewardForDuration, expectation);
-    // }
+    function testGetRewardForDuration() public {
+        staking.setRewardsDuration(REWARD_DURATION);
+        staking.notifyRewardAmount(REWARD_AMOUNT);
+        uint256 rewardForDuration = staking.getRewardForDuration();
+        assertApproxEqRel(rewardForDuration, REWARD_AMOUNT, 1e17);
+    }
+
+    function testStake() public {
+        staking.setRewardsDuration(REWARD_DURATION);
+        staking.notifyRewardAmount(REWARD_AMOUNT);
+        rewardToken.approve(address(staking), MAX_UINT256);
+        staking.stake(STAKE_AMOUNT);
+        uint256 staked = staking.balanceOf(address(this));
+        assertEq(staked, STAKE_AMOUNT);
+    }
 }
