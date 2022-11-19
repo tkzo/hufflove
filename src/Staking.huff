@@ -216,6 +216,7 @@
     0x20 0x00 return                                // []
 }
 
+/// TODO: Use REWARD_PER_TOKEN_INNER from stack
 /// @notice Earned Inner
 /// @notice Returns the amount of rewards earned by the given address
 #define macro EARNED_INNER() = takes (1) returns (1) {
