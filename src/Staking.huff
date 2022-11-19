@@ -26,14 +26,13 @@
 #define function lastTimeRewardApplicable() view returns (uint256)
 #define function rewardPerToken() view returns (uint256)
 #define function getRewardRate() view returns (uint256)
-#define function notifyRewardAmount(uint256) nonpayable returns ()
-
 #define function earned(address) view returns (uint256)
 #define function getRewardForDuration() view returns (uint256)
 #define function stake(uint256) nonpayable returns () 
 #define function withdraw(uint256) nonpayable returns () 
 #define function getReward() nonpayable returns ()
 #define function exit() nonpayable returns () 
+#define function notifyRewardAmount(uint256) nonpayable returns ()
 #define function recoverERC20(address,uint256) nonpayable returns ()
 #define function setRewardsDuration(uint256) nonpayable returns ()
 
@@ -63,7 +62,6 @@
 #define constant BALANCES_SLOT = FREE_STORAGE_POINTER()
 
 // Utility Constants
-#define constant UINT_256_MAX = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 #define constant DECIMAL = 0xDE0B6B3A7640000
 #define constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000000000000000000000000000
 
@@ -632,11 +630,11 @@
     TSOWNABLE_MAIN()
 
     rewardsDurationJump:
-        REWARDS_DURATION()          // []
+        REWARDS_DURATION()
     rewardsTokenJump:
-        REWARDS_TOKEN()             // []
+        REWARDS_TOKEN()
     stakingTokenJump:
-        STAKING_TOKEN()             // []
+        STAKING_TOKEN()
     totalSupplyJump:
         TOTAL_SUPPLY()
     balanceOfJump:
