@@ -32,7 +32,7 @@
 #define function getRewardForDuration() view returns (uint256)
 #define function stake(uint256) nonpayable returns () 
 // #define function withdraw(uint256) nonpayable returns () 
-// #define function getReward() nonpayable returns ()
+#define function getReward() nonpayable returns ()
 // #define function exit() nonpayable returns () 
 #define function recoverERC20(address,uint256) nonpayable returns ()
 #define function setRewardsDuration(uint256) nonpayable returns ()
@@ -45,7 +45,7 @@
 #define event RewardAdded(uint256)
 #define event Staked(address indexed, uint256)
 // #define event Withdrawn(address indexed, uint256)
-// #define event RewardPaid(address indexed, uint256)
+#define event RewardPaid(address indexed, uint256)
 #define event RewardsDurationUpdated(uint256)
 #define event Recovered(address, uint256)
 
@@ -193,12 +193,12 @@
 
     LAST_TIME_REWARD_APPLICABLE_INNER()             // [lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
     [LAST_UPDATE_TIME_SLOT] sload                   // [lastUpdateTime, lastTimeRewardApplicable, totalSupply, rewardPerTokenStored ]
-    SAFE_SUB()                                      // [lastUpdateTime - lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
-    [REWARD_RATE_SLOT] sload                        // [rewardRate, lastUpdateTime - lastTimeRewardApplicable, totalSupply, rewardPerTokenStored]
-    SAFE_MUL()                                      // [rewardRate * (lastUpdateTime - lastTimeRewardApplicable), totalSupply, rewardPerTokenStored]
-    [DECIMAL] sload SAFE_MUL()                      // [rewardRate * (lastUpdateTime - lastTimeRewardApplicable) * DECIMAL, totalSupply, rewardPerTokenStored]
-    SAFE_DIV()                                      // [rewardRate * (lastUpdateTime - lastTimeRewardApplicable) * DECIMAL / totalSupply, rewardPerTokenStored]
-    SAFE_ADD()                                      // [rewardPerTokenStored + rewardRate * (lastUpdateTime - lastTimeRewardApplicable) * DECIMAL / totalSupply]
+    swap1 SAFE_SUB()                                // [lastTimeRewardApplicable - lastUpdateTime, totalSupply, rewardPerTokenStored]
+    [REWARD_RATE_SLOT] sload                        // [rewardRate, lastTimeRewardApplicable - lastUpdateTime, totalSupply, rewardPerTokenStored]
+    SAFE_MUL()                                      // [rewardRate * (lastTimeRewardApplicable - lastUpdateTime), totalSupply, rewardPerTokenStored]
+    [DECIMAL] SAFE_MUL()                            // [rewardRate * (lastTimeRewardApplicable - lastUpdateTime) * 1e18, totalSupply, rewardPerTokenStored]
+    SAFE_DIV()                                      // [rewardRate * (lastTimeRewardApplicable - lastUpdateTime) * 1e18 / totalSupply, rewardPerTokenStored]
+    SAFE_ADD()                                      // [rewardPerTokenStored + rewardRate * (lastTimeRewardApplicable - lastUpdateTime) * 1e18 / totalSupply]
     returnRPTJump jump
 
     noSupplyJump:                                   // [totalSupply, rewardPerToken]
@@ -238,7 +238,7 @@
     [BALANCES_SLOT]                                                 // [BALANCES_SLOT, account, rewardPerToken - userRewardPerTokenPaid, account]
     LOAD_ELEMENT_FROM_KEYS(0x00)                                    // [balance, rewardPerToken - userRewardPerTokenPaid, account]
     SAFE_MUL()                                                      // [balance * (rewardPerToken - userRewardPerTokenPaid), account]
-    [DECIMAL] SAFE_MUL()                                            // [balance * (rewardPerToken - userRewardPerTokenPaid) * DECIMAL, account]
+    [DECIMAL] swap1 SAFE_DIV()                                      // [balance * (rewardPerToken - userRewardPerTokenPaid) * DECIMAL, account]
     dup2                                                            // [account, balance * (rewardPerToken - userRewardPerTokenPaid) * DECIMAL, account]
     [REWARDS_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)                     // [rewards, balance * (rewardPerToken - userRewardPerTokenPaid) * DECIMAL, account]
     SAFE_ADD()                                                      // [rewards + balance * (rewardPerToken - userRewardPerTokenPaid) * DECIMAL, account]
@@ -372,46 +372,45 @@
 //     log3                                            // []
 // }
 
-// /// @notice Get Reward
-// /// @notice Get the reward for the caller
-// #define macro GET_REWARD() = takes (0) returns (0) {
-//     NON_PAYABLE()                                   // []
-//     LOCK()                                          // []
-//     caller                                          // [caller]
-//     dup1                                            // [caller, caller]
-//     UPDATE_REWARD_INNER()                           // [caller]
-//     [REWARDS_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)     // [reward]
+/// @notice Get Reward
+/// @notice Get the reward for the caller
+#define macro GET_REWARD() = takes (0) returns (0) {
+    NON_PAYABLE()                                   // []
+    LOCK()                                          // []
+    caller                                          // [caller]
+    dup1                                            // [caller, caller]
+    UPDATE_REWARD_MODIFIER()                        // [caller]
+    [REWARDS_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)     // [reward]
     
-//     iszero                                          // [reward == 0]
-//     [GET_REWARD_LENGTH]                             // [length, reward == 0]
-//     [GET_REWARD_ERROR]                              // [error, length, reward == 0]
-//     swap2                                           // [reward == 0, length, error]
-//     REQUIRE()                                       // []
+    iszero iszero                                   // [reward == 0]
+    [GET_REWARD_LENGTH]                             // [length, reward == 0]
+    [GET_REWARD_ERROR]                              // [error, length, reward == 0]
+    swap2                                           // [reward == 0, length, error]
+    REQUIRE()                                       // []
 
-//     0x00 caller                                     // [caller, 0x00, reward]
-//     [REWARDS_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)    // [reward]
+    0x00 caller                                     // [caller, 0x00, reward]
+    [REWARDS_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)    // [reward]
 
-//     __FUNC_SIG(transfer)                            // [sig, reward]
-//     0x00 mstore                                     // [reward]
-//     caller 0x20 mstore                              // [reward]
-//     dup1 0x40 mstore                                // [reward]
-//     0x00 0x00 0x44 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, reward]
-//     [REWARDS_TOKEN_SLOT]                            // [address, value, argsOffset, argsSize, retOffset, retSize, reward] 
-//     gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, reward]
-//     call                                            // [success, reward]
-//     dup1                                            // [success, success, reward]
+    __FUNC_SIG(transfer)                            // [sig, reward]
+    0x00 mstore                                     // [reward]
+    caller 0x20 mstore                              // [reward]
+    dup1 0x40 mstore                                // [reward]
+    0x00 0x00 0x44 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, reward]
+    [REWARDS_TOKEN_SLOT]                            // [address, value, argsOffset, argsSize, retOffset, retSize, reward] 
+    gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, reward]
+    call                                            // [success, reward]
 
-//     [TRANSFER_LENGTH]                               // [length, success, reward]
-//     [TRANSFER_ERROR]                                // [error, length, success, reward]
-//     swap2                                           // [success, length, error, reward]
-//     REQUIRE()                                       // [reward]
+    [TRANSFER_LENGTH]                               // [length, success, reward]
+    [TRANSFER_ERROR]                                // [error, length, success, reward]
+    swap2                                           // [success, length, error, reward]
+    REQUIRE()                                       // [reward]
 
-//     caller                                          // [address, reward]
-//     __EVENT_HASH(RewardPaid)                        // [sig, address, reward]
-//     dup1 0x00 mstore                                // [sig, address, reward]
-//     0x20 0x00                                       // [0, 32, sig, address, reward]
-//     log3                                            // []
-// }
+    caller                                          // [caller, reward]
+    __EVENT_HASH(RewardPaid)                        // [sig, caller, reward]
+    dup1 0x00 mstore                                // [sig, caller, reward]
+    0x20 0x00                                       // [0, 32, sig, caller, reward]
+    log3                                            // []
+}
 
 // /// @notice Exit
 // /// @notice Withdraws all tokens and rewards
@@ -618,7 +617,7 @@
     dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
     dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
     // dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
-    // dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
+    dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
     // dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
     dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
     dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
@@ -651,9 +650,9 @@
     // withdrawJump:
     //     WITHDRAW()
     //     finalize jump
-    // getRewardJump:
-    //     GET_REWARD()
-    //     finalize jump
+    getRewardJump:
+        GET_REWARD()
+        finalize jump
     // exitJump:
     //     EXIT()
     //     finalize jump

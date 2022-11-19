@@ -187,4 +187,16 @@ contract StakingTest is Test {
         uint256 staked = staking.balanceOf(address(this));
         assertEq(staked, STAKE_AMOUNT);
     }
+
+    function testEarned() public {
+        staking.setRewardsDuration(REWARD_DURATION);
+        staking.notifyRewardAmount(REWARD_AMOUNT);
+        rewardToken.approve(address(staking), MAX_UINT256);
+        uint256 earned_pre = staking.earned(address(this));
+        assertEq(earned_pre, 0);
+        staking.stake(STAKE_AMOUNT);
+        vm.warp(block.timestamp + REWARD_DURATION + 1000);
+        uint256 earned_post = staking.earned(address(this));
+        assertApproxEqRel(earned_post, REWARD_AMOUNT, 1e17);
+    }
 }
