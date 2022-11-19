@@ -13,9 +13,9 @@
 #include "huffmate/math/SafeMath.huff"
 #include "huffmate/utils/Errors.huff"
 #include "huffmate/utils/ERC20Transfer.huff"
-#include "./ReentrancyGuard.huff"
-#include "./TSOwnable.huff"
-#include "./Pausable.huff"
+#include "./helpers/ReentrancyGuard.huff"
+#include "./helpers/TSOwnable.huff"
+#include "./helpers/Pausable.huff"
 
 // Interface
 #define function rewardsDuration() view returns(uint256)
@@ -25,7 +25,6 @@
 #define function balanceOf(address) view returns (uint256)
 #define function lastTimeRewardApplicable() view returns (uint256)
 #define function rewardPerToken() view returns (uint256)
-#define function getRewardRate() view returns (uint256)
 #define function earned(address) view returns (uint256)
 #define function getRewardForDuration() view returns (uint256)
 #define function stake(uint256) nonpayable returns () 
@@ -205,14 +204,6 @@
     noSupplyJump:                                   // [totalSupply, rewardPerToken]
     pop                                             // [rewardPerToken]
     returnRPTJump:                                  // [rewardPerToken]
-}
-
-// TODO: Remove!
-#define macro GET_REWARD_RATE() = takes (0) returns (0) {
-    NON_PAYABLE()                                   // []
-    [REWARD_RATE_SLOT] sload                        // [rewardRate]
-    0x00 mstore                                     // []
-    0x20 0x00 return                                // []
 }
 
 /// @notice Earned
@@ -625,7 +616,6 @@
     dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
     dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
     dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
-    dup1 __FUNC_SIG(getRewardRate)              eq getRewardRateJump                jumpi
 
     TSOWNABLE_MAIN()
 
@@ -665,8 +655,6 @@
         RECOVER_ERC20()
     setRewardsDurationJump:
         SET_REWARDS_DURATION()
-    getRewardRateJump:
-        GET_REWARD_RATE()
     finalize:
         UNLOCK()
         0x01 0x00 mstore

@@ -30,8 +30,6 @@ interface Staking {
 
     function getRewardForDuration() external view returns (uint256);
 
-    function getRewardRate() external view returns (uint256);
-
     function stake(uint256) external;
 
     function withdraw(uint256) external;
@@ -157,14 +155,6 @@ contract StakingTest is Test {
         if (totalSupply == 0) {
             assertEq(rpt, 0);
         }
-    }
-
-    function testNotifyRewardAmount() public {
-        staking.setRewardsDuration(REWARD_DURATION);
-        staking.notifyRewardAmount(REWARD_AMOUNT);
-        uint256 rewardRate = staking.getRewardRate();
-        uint256 expectedRate = REWARD_AMOUNT.div(REWARD_DURATION);
-        assertEq(rewardRate, expectedRate);
     }
 
     function testGetRewardForDuration() public {
