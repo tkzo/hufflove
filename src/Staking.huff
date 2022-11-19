@@ -601,19 +601,19 @@
 
     0x00 calldataload 0xE0 shr
 
-    dup1 __FUNC_SIG(rewardsDuration)            eq rewardsDurationJump              jumpi
-    dup1 __FUNC_SIG(rewardsToken)               eq rewardsTokenJump                 jumpi
-    dup1 __FUNC_SIG(stakingToken)               eq stakingTokenJump                 jumpi
+    dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
+    dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
+    dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
+    dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
+    dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi
+    dup1 __FUNC_SIG(rewardPerToken)             eq rewardPerTokenJump               jumpi
+    dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
     dup1 __FUNC_SIG(totalSupply)                eq totalSupplyJump                  jumpi
     dup1 __FUNC_SIG(balanceOf)                  eq balanceOfJump                    jumpi
     dup1 __FUNC_SIG(lastTimeRewardApplicable)   eq lastTimeRewardApplicableJump     jumpi
-    dup1 __FUNC_SIG(rewardPerToken)             eq rewardPerTokenJump               jumpi
-    dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi
-    dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
-    dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
-    dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
-    dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
-    dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
+    dup1 __FUNC_SIG(rewardsDuration)            eq rewardsDurationJump              jumpi
+    dup1 __FUNC_SIG(rewardsToken)               eq rewardsTokenJump                 jumpi
+    dup1 __FUNC_SIG(stakingToken)               eq stakingTokenJump                 jumpi
     dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
     dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
     dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
