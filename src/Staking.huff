@@ -31,9 +31,9 @@
 #define function earned(address) view returns (uint256)
 #define function getRewardForDuration() view returns (uint256)
 #define function stake(uint256) nonpayable returns () 
-// #define function withdraw(uint256) nonpayable returns () 
+#define function withdraw(uint256) nonpayable returns () 
 #define function getReward() nonpayable returns ()
-// #define function exit() nonpayable returns () 
+#define function exit() nonpayable returns () 
 #define function recoverERC20(address,uint256) nonpayable returns ()
 #define function setRewardsDuration(uint256) nonpayable returns ()
 
@@ -44,7 +44,7 @@
 // // Events
 #define event RewardAdded(uint256)
 #define event Staked(address indexed, uint256)
-// #define event Withdrawn(address indexed, uint256)
+#define event Withdrawn(address indexed, uint256)
 #define event RewardPaid(address indexed, uint256)
 #define event RewardsDurationUpdated(uint256)
 #define event Recovered(address, uint256)
@@ -299,8 +299,7 @@
     0x00 mstore                                     // [amount]
     caller 0x20 mstore                              // [amount]
     address 0x40 mstore                             // [amount]
-    dup1                                            // [amount, amount]
-    0x60 mstore                                     // [amount]
+    dup1 0x60 mstore                                // [amount]
     0x00 0x00 0x64 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, amount]
     [STAKING_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize, amount] 
     gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, amount]
@@ -319,62 +318,63 @@
 }
 
 
-// /// @notice Withdraw
-// /// @notice Withdraws the given amount of tokens
-// /// @param amount The amount of tokens to withdraw
-// #define macro WITHDRAW() = takes (0) returns (0) {
-//     LOCK()                                          // []
-//     0x04 calldataload                               // [amount]
-//     WITHDRAW_INNER()                                // []
-// }
+/// @notice Withdraw
+/// @notice Withdraws the given amount of tokens
+/// @param amount The amount of tokens to withdraw
+#define macro WITHDRAW() = takes (0) returns (0) {
+    LOCK()                                          // []
+    0x04 calldataload                               // [amount]
+    WITHDRAW_INNER()                                // []
+}
 
-// /// @notice Withdraw Inner
-// /// @notice Withdraws the given amount of tokens
-// #define macro WITHDRAW_INNER() = takes (1) returns (0) {
-//     // input stack [amount]
-//     NON_PAYABLE()                                   // [amount]
-//     caller                                          // [caller,amount]
-//     UPDATE_REWARD_INNER()                           // [amount]
-//     dup1                                            // [amount, amount]
-//     iszero                                          // [amount == 0, amount]
-//     [AMOUNT_ZERO_LENGTH]                            // [AMOUNT_ZERO_LENGTH, amount == 0, amount]
-//     [AMOUNT_ZERO_ERROR]                             // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, amount == 0, amount]
-//     swap2                                           // [amount == 0, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR, amount]
-//     REQUIRE()                                       // [amount]
+/// @notice Withdraw Inner
+/// @notice Withdraws the given amount of tokens
+#define macro WITHDRAW_INNER() = takes (1) returns (0) {
+    // input stack [amount]
+    NON_PAYABLE()                                   // [amount]
+    caller                                          // [caller,amount]
+    UPDATE_REWARD_MODIFIER()                        // [amount]
+    dup1                                            // [amount, amount]
+    iszero iszero                                   // [amount == 0, amount]
 
-//     caller                                          // [caller, amount]
-//     dup1                                            // [caller, caller, amount]
-//     [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)    // [balance, caller, amount]
-//     dup3                                            // [amount, balance, caller, amount]
-//     SAFE_SUB()                                      // [balance - amount, caller, amount]
-//     swap1                                           // [caller, balance - amount, amount]
-//     [BALANCES_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)   // [amount]
+    [AMOUNT_ZERO_LENGTH]                            // [AMOUNT_ZERO_LENGTH, amount == 0, amount]
+    [AMOUNT_ZERO_ERROR]                             // [AMOUNT_ZERO_ERROR, AMOUNT_ZERO_LENGTH, amount == 0, amount]
+    swap2                                           // [amount == 0, AMOUNT_ZERO_LENGTH, AMOUNT_ZERO_ERROR, amount]
+    REQUIRE()                                       // [amount]
 
-//     [TOTAL_SUPPLY_SLOT]                             // [totalSupply, amount]
-//     SAFE_SUB()                                      // [totalSupply - amount, amount]
-//     [TOTAL_SUPPLY_SLOT] sstore                      // [amount]
+    dup1                                            // [amount, amount]
+    [TOTAL_SUPPLY_SLOT] sload                       // [totalSupply, amount, amount]
+    SAFE_SUB()                                      // [totalSupply - amount, amount]
+    [TOTAL_SUPPLY_SLOT] sstore                      // [amount]
 
-//     __FUNC_SIG(transferFrom)                        // [sig, amount]
-//     0x00 mstore                                     // [amount]
-//     address 0x20 mstore                             // [amount]
-//     caller 0x40 mstore                              // [amount]
-//     dup1 0x60 mstore                                // [amount]
-//     0x00 0x00 0x64 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, amount]
-//     [STAKING_TOKEN_SLOT]                            // [address, value, argsOffset, argsSize, retOffset, retSize, amount] 
-//     gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, amount]
-//     call                                            // [success, amount]
+    caller                                          // [caller, amount]
+    dup1                                            // [caller, caller, amount]
+    [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)    // [balance, caller, amount]
+    dup3                                            // [amount, balance, caller, amount]
+    swap1 SAFE_SUB()                                // [balance - amount, caller, amount]
+    swap1                                           // [caller, balance - amount, amount]
+    [BALANCES_SLOT] STORE_ELEMENT_FROM_KEYS(0x00)   // [amount]
 
-//     [TRANSFER_LENGTH]                               // [length, success, amount]
-//     [TRANSFER_ERROR]                                // [error, length, success, amount]
-//     swap2                                           // [success, length, error, amount]
-//     REQUIRE()                                       // [amount]
+    __FUNC_SIG(transfer)                            // [sig, amount]
+    0x00 mstore                                     // [amount]
+    caller 0x20 mstore                              // [amount]
+    dup1 0x40 mstore                                // [amount]
+    0x00 0x00 0x44 0x1c 0x00                        // [value, argsOffset, argsSize, retOffset, retSize, amount]
+    [STAKING_TOKEN_SLOT] sload                      // [address, value, argsOffset, argsSize, retOffset, retSize, amount] 
+    gas                                             // [gas, address, value, argsOffset, argsSize, retOffset, retSize, amount]
+    call                                            // [success, amount]
 
-//     caller                                          // [address, amount]
-//     __EVENT_HASH(Withdrawn)                         // [sig, address, amount]
-//     dup1 0x00 mstore                                // [sig, address, amount]
-//     0x20 0x00                                       // [0, 32, sig, address, amount]
-//     log3                                            // []
-// }
+    [TRANSFER_LENGTH]                               // [length, success, amount]
+    [TRANSFER_ERROR]                                // [error, length, success, amount]
+    swap2                                           // [success, length, error, amount]
+    REQUIRE()                                       // [amount]
+
+    caller                                          // [address, amount]
+    __EVENT_HASH(Withdrawn)                         // [sig, address, amount]
+    dup1 0x00 mstore                                // [sig, address, amount]
+    0x20 0x00                                       // [0, 32, sig, address, amount]
+    log3                                            // []
+}
 
 /// @notice Get Reward
 /// @notice Get the reward for the caller
@@ -417,15 +417,15 @@
     log3                                            // []
 }
 
-// /// @notice Exit
-// /// @notice Withdraws all tokens and rewards
-// #define macro EXIT() = takes (0) returns (0) {
-//     LOCK()                                          // []
-//     caller                                          // [caller]
-//     [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)    // [balance]
-//     WITHDRAW_INNER()                                // []
-//     GET_REWARD()                                    // []
-// }
+/// @notice Exit
+/// @notice Withdraws all tokens and rewards
+#define macro EXIT() = takes (0) returns (0) {
+    LOCK()                                          // []
+    caller                                          // [caller]
+    [BALANCES_SLOT] LOAD_ELEMENT_FROM_KEYS(0x00)    // [balance]
+    WITHDRAW_INNER()                                // []
+    GET_REWARD()                                    // []
+}
 
 /// @notice Update Reward Modifier
 /// @notice Updates user rewards
@@ -449,6 +449,7 @@
     dup2                                                            // [account, rewardPerTokenStored, account]
     [USER_REWARD_PER_TOKEN_PAID_SLOT]                               // [userRewardPerTokenPaid, account, rewardPerTokenStored, account]
     STORE_ELEMENT_FROM_KEYS(0x00)                                   // [account]
+    pop
 
     zeroAddressJump:                                                // [account]
     pop                                                             // []
@@ -620,9 +621,9 @@
     dup1 __FUNC_SIG(earned)                     eq earnedJump                       jumpi
     dup1 __FUNC_SIG(getRewardForDuration)       eq getRewardForDurationJump         jumpi
     dup1 __FUNC_SIG(stake)                      eq stakeJump                        jumpi
-    // dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
+    dup1 __FUNC_SIG(withdraw)                   eq withdrawJump                     jumpi
     dup1 __FUNC_SIG(getReward)                  eq getRewardJump                    jumpi
-    // dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
+    dup1 __FUNC_SIG(exit)                       eq exitJump                         jumpi
     dup1 __FUNC_SIG(notifyRewardAmount)         eq notifyRewardAmountJump           jumpi
     dup1 __FUNC_SIG(recoverERC20)               eq recoverERC20Jump                 jumpi
     dup1 __FUNC_SIG(setRewardsDuration)         eq setRewardsDurationJump           jumpi
@@ -651,15 +652,15 @@
     stakeJump:
         STAKE()
         finalize jump
-    // withdrawJump:
-    //     WITHDRAW()
-    //     finalize jump
+    withdrawJump:
+        WITHDRAW()
+        finalize jump
     getRewardJump:
         GET_REWARD()
         finalize jump
-    // exitJump:
-    //     EXIT()
-    //     finalize jump
+    exitJump:
+        EXIT()
+        finalize jump
     notifyRewardAmountJump:
         NOTIFY_REWARD_AMOUNT()
     recoverERC20Jump:

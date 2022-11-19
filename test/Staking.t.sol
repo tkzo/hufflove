@@ -130,11 +130,6 @@ contract StakingTest is Test {
         assertEq(balance, 0);
     }
 
-    function testTotalSupply() public {
-        uint256 totalSupply = staking.totalSupply();
-        assertEq(totalSupply, 0);
-    }
-
     function testRecoverERC20() public {
         uint256 balance_pre = randomToken.balanceOf(address(this));
         uint256 diff = MINTED_AMOUNT.sub(REWARD_AMOUNT);
@@ -184,8 +179,12 @@ contract StakingTest is Test {
         staking.notifyRewardAmount(REWARD_AMOUNT);
         rewardToken.approve(address(staking), MAX_UINT256);
         staking.stake(STAKE_AMOUNT);
+        uint256 total_supply = staking.totalSupply();
+        assertEq(total_supply, STAKE_AMOUNT);
         uint256 staked = staking.balanceOf(address(this));
         assertEq(staked, STAKE_AMOUNT);
+        uint256 rewardPerToken = staking.rewardPerToken();
+        console.log("Reward Per Token LOG:", rewardPerToken);
     }
 
     function testEarned() public {
@@ -211,5 +210,17 @@ contract StakingTest is Test {
         uint256 balance_post = rewardToken.balanceOf(address(this));
         uint256 diff = balance_post - balance_pre;
         assertApproxEqRel(diff, REWARD_AMOUNT, 1e17);
+    }
+
+    function testWithdraw() public {
+        staking.setRewardsDuration(REWARD_DURATION);
+        staking.notifyRewardAmount(REWARD_AMOUNT);
+        rewardToken.approve(address(staking), MAX_UINT256);
+        uint256 balance_pre = rewardToken.balanceOf(address(this));
+        staking.stake(STAKE_AMOUNT);
+        vm.warp(block.timestamp + REWARD_DURATION);
+        staking.withdraw(STAKE_AMOUNT);
+        uint256 balance_post = rewardToken.balanceOf(address(this));
+        assertEq(balance_pre, balance_post);
     }
 }
