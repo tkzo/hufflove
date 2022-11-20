@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "solidity/Mock20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "solidity/Stakable.sol";
 
 interface Staking {
     function pendingOwner() external view returns (address);
@@ -49,6 +50,7 @@ contract StakingTest is Test {
     using SafeMath for uint256;
     /// @dev Address of the Staking contract.
     Staking public staking;
+    Stakable public stakable;
     Mock20 public rewardToken;
     Mock20 public randomToken;
 
@@ -82,6 +84,10 @@ contract StakingTest is Test {
         );
         rewardToken.transfer(address(staking), REWARD_AMOUNT);
         randomToken.transfer(address(staking), REWARD_AMOUNT);
+
+        // deploy solidity version
+        stakable = new Stakable(address(rewardToken), address(rewardToken));
+        rewardToken.transfer(address(stakable), REWARD_AMOUNT);
     }
 
     function testMockERC20Metadata() public {
@@ -212,5 +218,26 @@ contract StakingTest is Test {
         staking.withdraw(STAKE_AMOUNT);
         uint256 balance_post = rewardToken.balanceOf(address(this));
         assertEq(balance_pre, balance_post);
+    }
+
+    // tests for rough gas comparison
+    function test_Solidity() public {
+        stakable.setRewardsDuration(REWARD_DURATION);
+        stakable.notifyRewardAmount(REWARD_AMOUNT);
+        rewardToken.approve(address(stakable), MAX_UINT256);
+        stakable.stake(STAKE_AMOUNT);
+        vm.warp(block.timestamp + REWARD_DURATION);
+        stakable.getReward();
+        stakable.unstake(STAKE_AMOUNT);
+    }
+
+    function test_Huff() public {
+        staking.setRewardsDuration(REWARD_DURATION);
+        staking.notifyRewardAmount(REWARD_AMOUNT);
+        rewardToken.approve(address(staking), MAX_UINT256);
+        staking.stake(STAKE_AMOUNT);
+        vm.warp(block.timestamp + REWARD_DURATION);
+        staking.getReward();
+        staking.withdraw(STAKE_AMOUNT);
     }
 }
