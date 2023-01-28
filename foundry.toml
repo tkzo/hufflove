@@ -7,3 +7,4 @@ remappings = [
     "@openzeppelin/=lib/openzeppelin-contracts/"
 ]
 gas_reports = ["Staking", "Pausable"]
+solc = "0.8.15"

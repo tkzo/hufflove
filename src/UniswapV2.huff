@@ -1,0 +1,7 @@
+/// @title  UniswapV2
+/// @notice SPDX-License-Identifier: MIT
+/// @author takez0_o <https://github.com/takez0o>
+/// @notice Modern and gas efficient implementation of StakingRewards algorithm
+/// @notice Adapted from Synthetix (https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol)
+/// @notice Inspired by HuffMate (https://github.com/pentagonxyz/huffmate)
+

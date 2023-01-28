@@ -4,9 +4,9 @@ pragma solidity ^0.8.15;
 import "foundry-huff/HuffDeployer.sol";
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "solidity/Mock20.sol";
+import "solidity/Staking/Mock20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "solidity/Stakable.sol";
+import "solidity/Staking/Stakable.sol";
 
 interface Staking {
     function pendingOwner() external view returns (address);
